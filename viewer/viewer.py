@@ -4,11 +4,12 @@ from viser import GaussianSplatHandle
 import time
 from pathlib import Path
 from loader import load_ply_file
-from dataclasses import dataclass
+
+from util.util import GSplatHandle
 
 # gsplatとチェックボックスのセット
 class GsplatWithGui:
-    gsplat: GaussianSplatHandle
+    gsplat: GSplatHandle
     checkbox: viser.GuiCheckboxHandle
     def __init__(self, gsplat: GaussianSplatHandle, checkbox: viser.GuiCheckboxHandle):
         self.gsplat = gsplat
@@ -65,6 +66,13 @@ class Viewer:
         # setting
         self.server.scene.set_up_direction((0.0, 0.0, 1.0))  # z方向を上に
 
+        # gui
+        show_as_points = self.server.gui.add_checkbox("Show as points", initial_value=False)
+        @show_as_points.on_update
+        def _(_):
+            # NOTE: ここどうしよう～！
+            for gsplat in self.gsplatfolders.values():
+                gsplat.setVisible(show_as_points.value)
 
 
     # gsplatを一気に追加したいとき

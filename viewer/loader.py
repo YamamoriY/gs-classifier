@@ -13,25 +13,10 @@ from plyfile import PlyData
 import viser
 from viser import transforms as tf
 
-
-@dataclass
-class SplatFile:
-    centers: npt.NDArray[np.floating]
-    rgbs: npt.NDArray[np.floating]
-    opacities: npt.NDArray[np.floating]
-    covariances: npt.NDArray[np.floating]
-
-    def print_shape(self):
-        print(f"centers: {self.centers.shape}")
-        print(f"rgbs: {self.rgbs.shape}")
-        print(f"opacities: {self.opacities.shape}")
-        print(f"covariances: {self.covariances.shape}")
-        print(f"x range: {np.min(self.centers[:, 0])} to {np.max(self.centers[:, 0])}")
-        print(f"y range: {np.min(self.centers[:, 1])} to {np.max(self.centers[:, 1])}")
-        print(f"z range: {np.min(self.centers[:, 2])} to {np.max(self.centers[:, 2])}")
+from util.util import GsplatData
 
 
-def load_splat_file(splat_path: Path, center: bool = False) -> SplatFile:
+def load_splat_file(splat_path: Path, center: bool = False) -> GsplatData:
     start_time = time.time()
     splat_buffer = splat_path.read_bytes()
     bytes_per_gaussian = (
@@ -64,7 +49,7 @@ def load_splat_file(splat_path: Path, center: bool = False) -> SplatFile:
     print(
         f"Splat file with {num_gaussians=} loaded in {time.time() - start_time} seconds"
     )
-    return SplatFile(
+    return GsplatData(
         centers=centers,
         # Colors should have shape (N, 3).
         rgbs=splat_uint8[:, 24:27] / 255.0,
@@ -74,7 +59,7 @@ def load_splat_file(splat_path: Path, center: bool = False) -> SplatFile:
     )
 
 
-def load_ply_file(ply_file_path: Path, center: bool = False) -> SplatFile:
+def load_ply_file(ply_file_path: Path, center: bool = False) -> GsplatData:
     start_time = time.time()
 
     SH_C0 = 0.28209479177387814
@@ -98,7 +83,7 @@ def load_ply_file(ply_file_path: Path, center: bool = False) -> SplatFile:
     print(
         f"PLY file with {num_gaussians=} loaded in {time.time() - start_time} seconds"
     )
-    return SplatFile(
+    return GsplatData(
         centers=positions,
         rgbs=colors,
         opacities=opacities,
