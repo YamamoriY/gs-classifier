@@ -13,10 +13,10 @@ from plyfile import PlyData
 import viser
 from viser import transforms as tf
 
-from util.util import GsplatData
+from util.util import GSplatData
 
 
-def load_splat_file(splat_path: Path, center: bool = False) -> GsplatData:
+def load_splat_file(splat_path: Path, center: bool = False) -> GSplatData:
     start_time = time.time()
     splat_buffer = splat_path.read_bytes()
     bytes_per_gaussian = (
@@ -49,7 +49,7 @@ def load_splat_file(splat_path: Path, center: bool = False) -> GsplatData:
     print(
         f"Splat file with {num_gaussians=} loaded in {time.time() - start_time} seconds"
     )
-    return GsplatData(
+    return GSplatData(
         centers=centers,
         # Colors should have shape (N, 3).
         rgbs=splat_uint8[:, 24:27] / 255.0,
@@ -59,7 +59,7 @@ def load_splat_file(splat_path: Path, center: bool = False) -> GsplatData:
     )
 
 
-def load_ply_file(ply_file_path: Path, center: bool = False) -> GsplatData:
+def load_ply_file(ply_file_path: Path, center: bool = False) -> GSplatData:
     start_time = time.time()
 
     SH_C0 = 0.28209479177387814
@@ -83,7 +83,7 @@ def load_ply_file(ply_file_path: Path, center: bool = False) -> GsplatData:
     print(
         f"PLY file with {num_gaussians=} loaded in {time.time() - start_time} seconds"
     )
-    return GsplatData(
+    return GSplatData(
         centers=positions,
         rgbs=colors,
         opacities=opacities,
