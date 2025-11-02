@@ -67,22 +67,22 @@ class Viewer:
                 gsplatfolder = GSplatFolder(folder)
                 self.gsplatfolders[folder_name] = gsplatfolder
                 with folder:
-                    show_all = self.server.gui.add_button(f"Show All")
-                    @show_all.on_click
+
+                    visibility_buttons = self.server.gui.add_button_group("Visibility", options=["Show All", "Hide All"])
+                    @visibility_buttons.on_click
                     def _(_):
-                        gsplatfolder.show_all()
-                    hide_all = self.server.gui.add_button(f"Hide All")
-                    @hide_all.on_click
+                        if visibility_buttons.value == "Show All":
+                            gsplatfolder.show_all()
+                        elif visibility_buttons.value == "Hide All":
+                            gsplatfolder.hide_all()
+
+                    step_buttons = self.server.gui.add_button_group("Step", options=["<", ">"])
+                    @step_buttons.on_click
                     def _(_):
-                        gsplatfolder.hide_all()
-                    prev = self.server.gui.add_button(f"Prev")
-                    @prev.on_click
-                    def _(_):
-                        gsplatfolder.show_prev()
-                    next = self.server.gui.add_button(f"Next")
-                    @next.on_click
-                    def _(_):
-                        gsplatfolder.show_next()
+                        if step_buttons.value == "<":
+                            gsplatfolder.show_prev()
+                        elif step_buttons.value == ">":
+                            gsplatfolder.show_next()
 
     # ビューアを実行
     def run(self):
