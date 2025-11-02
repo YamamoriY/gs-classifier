@@ -8,6 +8,11 @@ from loader import load_ply_file
 def main():
     server = viser.ViserServer()
 
+    # settings
+    # z方向を上に
+    gui_up = server.gui.add_vector3("Up direction", initial_value=(0.0, 0.0, 1.0))
+    server.scene.set_up_direction((0.0, 1.0, 0.0))
+
     # add objects
     sphere = server.scene.add_icosphere(
         name="/sphere",
@@ -21,8 +26,8 @@ def main():
         color=(100, 255, 100),
         position=(1.0, 0.0, 0.0),
     )
-    # Load cactus.ply file
-    ply_path = Path(__file__).parent / "cactus.ply"
+    # Load .ply file
+    ply_path = Path(__file__).parent / "../data/akan.ply"
     splat_data = load_ply_file(ply_path, center=True)
     
     gsplat = server.scene.add_gaussian_splats(
