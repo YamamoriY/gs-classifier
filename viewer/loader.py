@@ -26,6 +26,9 @@ class SplatFile:
         print(f"rgbs: {self.rgbs.shape}")
         print(f"opacities: {self.opacities.shape}")
         print(f"covariances: {self.covariances.shape}")
+        print(f"x range: {np.min(self.centers[:, 0])} to {np.max(self.centers[:, 0])}")
+        print(f"y range: {np.min(self.centers[:, 1])} to {np.max(self.centers[:, 1])}")
+        print(f"z range: {np.min(self.centers[:, 2])} to {np.max(self.centers[:, 2])}")
 
 
 def load_splat_file(splat_path: Path, center: bool = False) -> SplatFile:
