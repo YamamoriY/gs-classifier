@@ -6,7 +6,7 @@ from pathlib import Path
 from loader import load_ply_file
 from dataclasses import dataclass
 
-# GSとチェックボックスのセット
+# gsplatとチェックボックスのセット
 class GsplatWithGui:
     gsplat: GaussianSplatHandle
     checkbox: viser.GuiCheckboxHandle
@@ -21,7 +21,7 @@ class GsplatWithGui:
         self.gsplat.visible = visible
         self.checkbox.value = visible
 
-# GSのリスト, フォルダのセット
+# gsplatのリスト, フォルダのセット
 class GsplatsWithFolder:
     gsplats: list[GsplatWithGui]
     folder: viser.GuiFolderHandle
@@ -60,10 +60,39 @@ class Viewer:
         self.folder_gui = self.server.gui.add_folder("Objects")
         self.setup()
 
+    # 初期設定はここに記述
     def setup(self):
         # setting
         self.server.scene.set_up_direction((0.0, 0.0, 1.0))  # z方向を上に
 
+
+
+    # gsplatを一気に追加したいとき
+    # class_idsで分類される
+    def add_gsplats(
+        self,
+        name: str,
+        centers: np.ndarray,
+        rgbs: np.ndarray,
+        opacities: np.ndarray,
+        covariances: np.ndarray,
+        class_ids: np.ndarray,
+        group_name: str = "default",
+    ) -> GaussianSplatHandle:
+        class_ids_set = set(class_ids)
+        for class_id in class_ids_set:
+            class_ids_mask = class_ids == class_id
+            self.add_gsplat(
+                name=f"{name}_{class_id}",
+                centers=centers[class_ids_mask],
+                rgbs=rgbs[class_ids_mask],
+                opacities=opacities[class_ids_mask],
+                covariances=covariances[class_ids_mask],
+                group_name=group_name,
+            )
+
+    # gsplatを追加
+    # group_nameが大分類（同じ名前のグループは同じフォルダに入る）
     def add_gsplat(
         self,
         name: str,
@@ -71,7 +100,7 @@ class Viewer:
         rgbs: np.ndarray,
         opacities: np.ndarray,
         covariances: np.ndarray,
-        class_name: str = "default",
+        group_name: str = "default",
     ) -> GaussianSplatHandle:
         gsplat = self.server.scene.add_gaussian_splats(
             name=f"{name}",
@@ -80,17 +109,17 @@ class Viewer:
             opacities=opacities,
             covariances=covariances,
         )
-        if class_name not in self.gsplatfolders:
-            self.add_folder(class_name)
+        if group_name not in self.gsplatfolders:
+            self._add_folder(group_name)
         with self.folder_gui:
-            with self.gsplatfolders[class_name].folder:
+            with self.gsplatfolders[group_name].folder:
                 checkbox = self.server.gui.add_checkbox(gsplat.name, initial_value=True)
                 gsplatwithgui = GsplatWithGui(gsplat, checkbox)
-                self.gsplatfolders[class_name].gsplats.append(gsplatwithgui)
+                self.gsplatfolders[group_name].gsplats.append(gsplatwithgui)
 
         return gsplat
 
-    def add_folder(self, name: str):
+    def _add_folder(self, name: str):
         if name not in self.gsplatfolders:
             with self.folder_gui:
                 folder = self.server.gui.add_folder(name)
@@ -116,6 +145,7 @@ class Viewer:
 
         return self.gsplatfolders[name].folder
 
+    # ビューアを実行
     def run(self):
         while True:
             time.sleep(10.0)
@@ -141,7 +171,7 @@ if __name__ == "__main__":
         rgbs=splat_data.rgbs,
         opacities=splat_data.opacities,
         covariances=splat_data.covariances,
-        class_name="akan",
+        group_name="akan",
     )
 
     ply_path = Path(__file__).parent / "../data/cactus.ply"
@@ -163,26 +193,26 @@ if __name__ == "__main__":
         rgbs=splat_data.rgbs,
         opacities=splat_data.opacities,
         covariances=splat_data.covariances,
-        class_name="akan",
+        group_name="akan",
     )
 
     splat_data.centers += np.array([0.0, 2.0, 0.0])
-    viewer.add_gsplat(
-        name="/cactus2",
-        centers=splat_data.centers,
-        rgbs=splat_data.rgbs,
-        opacities=splat_data.opacities,
-        covariances=splat_data.covariances,
-        class_name="cactus",
-    )
-    splat_data.centers += np.array([0.0, 2.0, 0.0])
-    viewer.add_gsplat(
+    half_index = len(splat_data.centers) // 2
+    class_ids = np.zeros(len(splat_data.centers), dtype=int)
+    class_ids[:half_index] = 1
+    splat_data.centers[class_ids == 1] += np.array([0.0, 2.0, 0.0])
+    splat_data.rgbs[class_ids == 0] = np.array([1.0, 0.0, 0.0])
+    splat_data.rgbs[class_ids == 1] = np.array([0.0, 1.0, 0.0])
+    viewer.add_gsplats(
         name="/cactus3",
         centers=splat_data.centers,
         rgbs=splat_data.rgbs,
         opacities=splat_data.opacities,
         covariances=splat_data.covariances,
-        class_name="cactus",
+        class_ids=class_ids,
+        group_name="cactus",
     )
+
+
     viewer.run()
     
