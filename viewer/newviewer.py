@@ -24,7 +24,11 @@ class Viewer:
         self.server.scene.set_up_direction((0.0, 0.0, 1.0))  # z方向を上に
 
         # gui
-        mode_dropdown: viser.GuiDropdownHandle = self.server.gui.add_dropdown("Mode", options=[GSplatMode.NORMAL.value, GSplatMode.POINTS_VIEW.value], initial_value=GSplatMode.NORMAL.value)
+        mode_dropdown: viser.GuiDropdownHandle = self.server.gui.add_dropdown(
+            "Mode",
+            options=[GSplatMode.NORMAL.value, GSplatMode.POINTS_VIEW.value, GSplatMode.CLASS_VIEW.value],
+            initial_value=GSplatMode.NORMAL.value,
+        )
         @mode_dropdown.on_update
         def _(_):
             for gsplatfolder in self.gsplatfolders.values():

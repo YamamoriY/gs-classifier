@@ -62,12 +62,14 @@ class GSplatDataWithClass(GSplatData):
 # ビュアーでの表示モード
 class GSplatMode(Enum):
     NORMAL = "normal"
-    POINTS_VIEW = "points_view"     
+    CLASS_VIEW = "class view"
+    POINTS_VIEW = "points view"     
 
 # Gaussian Splat データのハンドラー
 # 表示/非表示 と 表示モードを管理する
 class GSplatHandle:
     gsplat: GaussianSplatHandle
+    gsplat_class_view: GaussianSplatHandle
     gsplat_points_view: GaussianSplatHandle
     current_mode: GSplatMode
     visible_checkbox: viser.GuiCheckboxHandle | None
@@ -81,6 +83,17 @@ class GSplatHandle:
             opacities=data.opacities,
             covariances=data.covariances,
         )
+        # クラスビュー用
+        rgb_class_view = data.rgbs.copy()
+        rgb_class_view[:, :3] = ColorCycle()()[:3]
+        self.gsplat_class_view = server.scene.add_gaussian_splats(
+            name=f"{name}_class_view",
+            centers=data.centers,
+            rgbs=rgb_class_view,
+            opacities=data.opacities,
+            covariances=data.covariances,
+        )
+        self.gsplat_class_view.visible = False      
         # ポイントビュー用
         cov_points_view = data.covariances.copy()
         cov_points_view[:, :3, :3] = np.array([[0.00001, 0.0, 0.0], [0.0, 0.00001, 0.0], [0.0, 0.0, 0.00001]])
@@ -94,14 +107,22 @@ class GSplatHandle:
         self.gsplat_points_view.visible = False
         self.visible_checkbox = None
 
+    def non_visible_all(self):
+        self.gsplat.visible = False
+        self.gsplat_points_view.visible = False
+        self.gsplat_class_view.visible = False
+
     def change_mode(self, mode: GSplatMode):
         self.current_mode = mode
         if mode == GSplatMode.NORMAL:
+            self.non_visible_all()
             self.gsplat.visible = True
-            self.gsplat_points_view.visible = False
         elif mode == GSplatMode.POINTS_VIEW:
-            self.gsplat.visible = False
+            self.non_visible_all()
             self.gsplat_points_view.visible = True
+        elif mode == GSplatMode.CLASS_VIEW:
+            self.non_visible_all()
+            self.gsplat_class_view.visible = True
         else:
             raise ValueError(f"Invalid mode: {mode}")
 
@@ -111,6 +132,8 @@ class GSplatHandle:
             self.gsplat.visible = visible
         elif self.current_mode == GSplatMode.POINTS_VIEW:
             self.gsplat_points_view.visible = visible
+        elif self.current_mode == GSplatMode.CLASS_VIEW:
+            self.gsplat_class_view.visible = visible
 
     # 外部から visible を呼び出すときはこちら（チェックボックスの値も同期する）
     def set_visible(self, visible: bool):
