@@ -13,7 +13,7 @@ from plyfile import PlyData
 import viser
 from viser import transforms as tf
 
-from util.util import GSplatData
+from util.gstypes import GSplatData
 
 
 def load_splat_file(splat_path: Path, center: bool = False) -> GSplatData:

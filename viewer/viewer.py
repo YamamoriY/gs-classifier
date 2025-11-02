@@ -3,56 +3,12 @@ import numpy as np
 from viser import GaussianSplatHandle
 import time
 from pathlib import Path
-from loader import load_ply_file
-
-from util.util import GSplatHandle
-
-# gsplatとチェックボックスのセット
-class GsplatWithGui:
-    gsplat: GSplatHandle
-    checkbox: viser.GuiCheckboxHandle
-    def __init__(self, gsplat: GaussianSplatHandle, checkbox: viser.GuiCheckboxHandle):
-        self.gsplat = gsplat
-        self.checkbox = checkbox
-        @self.checkbox.on_update
-        def _(_):
-            self.gsplat.visible = self.checkbox.value
-
-    def setVisible(self, visible: bool):
-        self.gsplat.visible = visible
-        self.checkbox.value = visible
-
-# gsplatのリスト, フォルダのセット
-class GsplatsWithFolder:
-    gsplats: list[GsplatWithGui]
-    folder: viser.GuiFolderHandle
-    select_index: int = 0
-    def __init__(self, gsplats: list[GsplatWithGui], folder: viser.GuiFolderHandle):
-        self.gsplats = gsplats
-        self.folder = folder
-        self.select_index = 0
-
-    def show_all(self):
-        for gsplat in self.gsplats:
-            gsplat.setVisible(True)
-
-    def hide_all(self):
-        for gsplat in self.gsplats:
-            gsplat.setVisible(False)
-
-    def show_next(self):
-        self.hide_all()
-        self.select_index = max(0, min(len(self.gsplats) - 1, self.select_index + 1))
-        self.gsplats[self.select_index].setVisible(True)
-
-    def show_prev(self):
-        self.hide_all()
-        self.select_index = max(0, min(len(self.gsplats) - 1, self.select_index - 1))
-        self.gsplats[self.select_index].setVisible(True)
+from util.loader import load_ply_file
+from util.gstypes import GSplatData, GSplatDataWithClass, GSplatHandle, GSplatFolder, GSplatMode
 
 class Viewer:
     server: viser.ViserServer
-    gsplatfolders: dict[str, GsplatsWithFolder]
+    gsplatfolders: dict[str, GSplatFolder]
     folder_gui: viser.GuiFolderHandle
 
     def __init__(self):
@@ -61,97 +17,76 @@ class Viewer:
         self.folder_gui = self.server.gui.add_folder("Objects")
         self.setup()
 
-    # 初期設定はここに記述
+    # 初期設定
     def setup(self):
         # setting
         self.server.scene.set_up_direction((0.0, 0.0, 1.0))  # z方向を上に
 
         # gui
-        show_as_points = self.server.gui.add_checkbox("Show as points", initial_value=False)
-        @show_as_points.on_update
+        mode_dropdown: viser.GuiDropdownHandle = self.server.gui.add_dropdown(
+            "Mode",
+            options=[GSplatMode.NORMAL.value, GSplatMode.POINTS_VIEW.value, GSplatMode.CLASS_VIEW.value],
+            initial_value=GSplatMode.NORMAL.value,
+        )
+        @mode_dropdown.on_update
         def _(_):
-            # NOTE: ここどうしよう～！
-            for gsplat in self.gsplatfolders.values():
-                gsplat.setVisible(show_as_points.value)
-
+            for gsplatfolder in self.gsplatfolders.values():
+                gsplatfolder.change_mode(GSplatMode(mode_dropdown.value))
 
     # gsplatを一気に追加したいとき
     # class_idsで分類される
     def add_gsplats(
         self,
+        gsplatData: GSplatDataWithClass,
         name: str,
-        centers: np.ndarray,
-        rgbs: np.ndarray,
-        opacities: np.ndarray,
-        covariances: np.ndarray,
-        class_ids: np.ndarray,
-        group_name: str = "default",
+        folder_name: str = "default",
     ) -> GaussianSplatHandle:
-        class_ids_set = set(class_ids)
+        class_ids_set = set(gsplatData.class_ids)
         for class_id in class_ids_set:
-            class_ids_mask = class_ids == class_id
-            self.add_gsplat(
-                name=f"{name}_{class_id}",
-                centers=centers[class_ids_mask],
-                rgbs=rgbs[class_ids_mask],
-                opacities=opacities[class_ids_mask],
-                covariances=covariances[class_ids_mask],
-                group_name=group_name,
+            class_ids_mask = gsplatData.class_ids == class_id
+            tmp = GSplatData(
+                centers=gsplatData.centers[class_ids_mask],
+                rgbs=gsplatData.rgbs[class_ids_mask],
+                opacities=gsplatData.opacities[class_ids_mask],
+                covariances=gsplatData.covariances[class_ids_mask],
             )
+            self.add_gsplat(tmp, name=f"{name}_{class_id}", folder_name=folder_name)
 
     # gsplatを追加
-    # group_nameが大分類（同じ名前のグループは同じフォルダに入る）
-    def add_gsplat(
-        self,
-        name: str,
-        centers: np.ndarray,
-        rgbs: np.ndarray,
-        opacities: np.ndarray,
-        covariances: np.ndarray,
-        group_name: str = "default",
-    ) -> GaussianSplatHandle:
-        gsplat = self.server.scene.add_gaussian_splats(
-            name=f"{name}",
-            centers=centers,
-            rgbs=rgbs,
-            opacities=opacities,
-            covariances=covariances,
-        )
-        if group_name not in self.gsplatfolders:
-            self._add_folder(group_name)
+    # folder_nameが大分類（同じ名前のグループは同じフォルダに入る）
+    def add_gsplat(self, gsplatData: GSplatData, name: str, folder_name: str = "default"):
+        if folder_name not in self.gsplatfolders:
+            self._add_folder(folder_name)
         with self.folder_gui:
-            with self.gsplatfolders[group_name].folder:
-                checkbox = self.server.gui.add_checkbox(gsplat.name, initial_value=True)
-                gsplatwithgui = GsplatWithGui(gsplat, checkbox)
-                self.gsplatfolders[group_name].gsplats.append(gsplatwithgui)
+            with self.gsplatfolders[folder_name].folder:
+                checkbox = self.server.gui.add_checkbox(name, initial_value=True)
+                gsplat_handle = self.gsplatfolders[folder_name].add_gsplat(GSplatHandle(gsplatData, name, self.server))
+                gsplat_handle.attachVisibleCheckbox(checkbox)
 
-        return gsplat
-
-    def _add_folder(self, name: str):
-        if name not in self.gsplatfolders:
+    # フォルダを追加する内部関数
+    def _add_folder(self, folder_name: str):
+        if folder_name not in self.gsplatfolders:
             with self.folder_gui:
-                folder = self.server.gui.add_folder(name)
-                gsplatfolder = GsplatsWithFolder([], folder)
-                self.gsplatfolders[name] = gsplatfolder
+                folder = self.server.gui.add_folder(folder_name)
+                gsplatfolder = GSplatFolder(folder)
+                self.gsplatfolders[folder_name] = gsplatfolder
                 with folder:
-                    show_all = self.server.gui.add_button("Show All")
-                    @show_all.on_click
-                    def _(_):
-                        self.gsplatfolders[name].show_all()
-                    hide_all = self.server.gui.add_button("Hide All")
-                    @hide_all.on_click
-                    def _(_):
-                        self.gsplatfolders[name].hide_all()
-                    prev = self.server.gui.add_button("Prev")
-                    @prev.on_click
-                    def _(_):
-                        self.gsplatfolders[name].show_prev()
-                    next = self.server.gui.add_button("Next")
-                    @next.on_click
-                    def _(_):
-                        self.gsplatfolders[name].show_next()
 
-        return self.gsplatfolders[name].folder
+                    visibility_buttons = self.server.gui.add_button_group("Visibility", options=["Show All", "Hide All"])
+                    @visibility_buttons.on_click
+                    def _(_):
+                        if visibility_buttons.value == "Show All":
+                            gsplatfolder.show_all()
+                        elif visibility_buttons.value == "Hide All":
+                            gsplatfolder.hide_all()
+
+                    step_buttons = self.server.gui.add_button_group("Step", options=["<", ">"])
+                    @step_buttons.on_click
+                    def _(_):
+                        if step_buttons.value == "<":
+                            gsplatfolder.show_prev()
+                        elif step_buttons.value == ">":
+                            gsplatfolder.show_next()
 
     # ビューアを実行
     def run(self):
@@ -162,6 +97,7 @@ if __name__ == "__main__":
     viewer = Viewer()
     ply_path = Path(__file__).parent / "../data/akan.ply"
     splat_data = load_ply_file(ply_path, center=True)
+    splat_data.name = "akan"
     splat_data.print_shape()
 
     # 座標変換（x軸周り-90°）
@@ -173,14 +109,7 @@ if __name__ == "__main__":
     splat_data.centers = splat_data.centers @ R
     splat_data.covariances = np.einsum("ij,njk,kl->nil", R.T, splat_data.covariances, R)
 
-    viewer.add_gsplat(
-        name="/akan",
-        centers=splat_data.centers,
-        rgbs=splat_data.rgbs,
-        opacities=splat_data.opacities,
-        covariances=splat_data.covariances,
-        group_name="akan",
-    )
+    viewer.add_gsplat(splat_data, name="forest", folder_name="akan")
 
     ply_path = Path(__file__).parent / "../data/cactus.ply"
     splat_data = load_ply_file(ply_path, center=True)
@@ -195,14 +124,7 @@ if __name__ == "__main__":
     splat_data.centers = splat_data.centers @ R
     splat_data.covariances = np.einsum("ij,njk,kl->nil", R.T, splat_data.covariances, R)
 
-    viewer.add_gsplat(
-        name="/cactus",
-        centers=splat_data.centers,
-        rgbs=splat_data.rgbs,
-        opacities=splat_data.opacities,
-        covariances=splat_data.covariances,
-        group_name="akan",
-    )
+    viewer.add_gsplat(splat_data, name="cactus", folder_name="akan")
 
     splat_data.centers += np.array([0.0, 2.0, 0.0])
     half_index = len(splat_data.centers) // 2
@@ -212,13 +134,15 @@ if __name__ == "__main__":
     splat_data.rgbs[class_ids == 0] = np.array([1.0, 0.0, 0.0])
     splat_data.rgbs[class_ids == 1] = np.array([0.0, 1.0, 0.0])
     viewer.add_gsplats(
-        name="/cactus3",
-        centers=splat_data.centers,
-        rgbs=splat_data.rgbs,
-        opacities=splat_data.opacities,
-        covariances=splat_data.covariances,
-        class_ids=class_ids,
-        group_name="cactus",
+        gsplatData=GSplatDataWithClass(
+            centers=splat_data.centers,
+            rgbs=splat_data.rgbs,
+            opacities=splat_data.opacities,
+            covariances=splat_data.covariances,
+            class_ids=class_ids,
+        ),
+        name="classify_cactus",
+        folder_name="cactus",
     )
 
 

@@ -7,33 +7,7 @@ import numpy.typing as npt
 import viser
 from viser import GaussianSplatHandle
 
-import matplotlib.pyplot as plt
-
-# 未テスト
-# カラーサイクル
-# 20色が順に呼び出される
-# get_color = ColorCycle()
-# color = get_color() 
-# シングルトンなので、別のクラスから同様のアクセスをしても問題ない
-class ColorCycle:
-    _instance: ColorCycle | None = None
-    colors: npt.NDArray[np.floating]
-    index: int
-
-    def __new__(cls, n_colors: int = 20):
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-            cls._instance.colors = plt.cm.tab20(np.linspace(0, 1, n_colors))
-            cls._instance.index = 0
-        return cls._instance
-
-    def __call__(self) -> npt.NDArray[np.floating]:
-        color = self.colors[self.index % len(self.colors)]  
-        self.index += 1
-        return color
-
-    def reset(self):
-        self.index = 0
+from util.utils import ColorCycle
 
 # 最も基本的な Gaussian Splat のデータクラス
 @dataclass
@@ -59,14 +33,15 @@ class GSplatDataWithClass(GSplatData):
 
     # NOTE: print 後で作る
 
-# ビュアーでの表示モード
+# ビュアーの表示モード
 class GSplatMode(Enum):
     NORMAL = "normal"
     CLASS_VIEW = "class view"
     POINTS_VIEW = "points view"     
 
-# Gaussian Splat データのハンドラー
+# GSplatData のハンドラー
 # 表示/非表示 と 表示モードを管理する
+# 一度作成した Splat は後から変えられないっぽいので、表示形式の数だけ Splat を作成している
 class GSplatHandle:
     gsplat: GaussianSplatHandle
     gsplat_class_view: GaussianSplatHandle
@@ -113,16 +88,23 @@ class GSplatHandle:
         self.gsplat_class_view.visible = False
 
     def change_mode(self, mode: GSplatMode):
+        old_visibility = False
+        if self.current_mode == GSplatMode.NORMAL:
+            old_visibility = self.gsplat.visible
+        elif self.current_mode == GSplatMode.POINTS_VIEW:
+            old_visibility = self.gsplat_points_view.visible
+        elif self.current_mode == GSplatMode.CLASS_VIEW:
+            old_visibility = self.gsplat_class_view.visible
         self.current_mode = mode
         if mode == GSplatMode.NORMAL:
             self.non_visible_all()
-            self.gsplat.visible = True
+            self.gsplat.visible = old_visibility
         elif mode == GSplatMode.POINTS_VIEW:
             self.non_visible_all()
-            self.gsplat_points_view.visible = True
+            self.gsplat_points_view.visible = old_visibility
         elif mode == GSplatMode.CLASS_VIEW:
             self.non_visible_all()
-            self.gsplat_class_view.visible = True
+            self.gsplat_class_view.visible = old_visibility
         else:
             raise ValueError(f"Invalid mode: {mode}")
 
@@ -148,8 +130,7 @@ class GSplatHandle:
             self._set_visible(checkbox.value)
         self.visible_checkbox = checkbox
         
-# GSplat のフォルダ
-# ある程度まとめて管理して便利にする
+# GSplatHandle をまとめたフォルダ
 class GSplatFolder:
     _gsplats: list[GSplatHandle]
     _select_index: int = 0
