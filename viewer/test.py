@@ -1,5 +1,6 @@
 import time
 from pathlib import Path
+import numpy as np
 
 import viser
 from loader import load_ply_file
@@ -10,8 +11,7 @@ def main():
 
     # settings
     # z方向を上に
-    gui_up = server.gui.add_vector3("Up direction", initial_value=(0.0, 0.0, 1.0))
-    server.scene.set_up_direction((0.0, 1.0, 0.0))
+    server.scene.set_up_direction((0.0, 0.0, 1.0))
 
     # add objects
     sphere = server.scene.add_icosphere(
@@ -26,16 +26,27 @@ def main():
         color=(100, 255, 100),
         position=(1.0, 0.0, 0.0),
     )
+
     # Load .ply file
     ply_path = Path(__file__).parent / "../data/akan.ply"
     splat_data = load_ply_file(ply_path, center=True)
-    
+    splat_data.print_shape()
+
+    # 座標変換（x軸周り-90°）
+    R = np.array([
+        [1, 0, 0],
+        [0, 0, -1],
+        [0, 1, 0],
+    ])
+    splat_data.centers = splat_data.centers @ R
+    splat_data.covariances = np.einsum("ij,njk,kl->nil", R.T, splat_data.covariances, R)
+
     gsplat = server.scene.add_gaussian_splats(
         name="/gsplat",
-        centers=splat_data["centers"],
-        rgbs=splat_data["rgbs"],
-        opacities=splat_data["opacities"],
-        covariances=splat_data["covariances"],
+        centers=splat_data.centers,
+        rgbs=splat_data.rgbs,
+        opacities=splat_data.opacities,
+        covariances=splat_data.covariances,
     )
 
     # add gui controls

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 import time
 from pathlib import Path
 from typing import TypedDict
@@ -13,12 +14,18 @@ import viser
 from viser import transforms as tf
 
 
-class SplatFile(TypedDict):
-
+@dataclass
+class SplatFile:
     centers: npt.NDArray[np.floating]
     rgbs: npt.NDArray[np.floating]
     opacities: npt.NDArray[np.floating]
     covariances: npt.NDArray[np.floating]
+
+    def print_shape(self):
+        print(f"centers: {self.centers.shape}")
+        print(f"rgbs: {self.rgbs.shape}")
+        print(f"opacities: {self.opacities.shape}")
+        print(f"covariances: {self.covariances.shape}")
 
 
 def load_splat_file(splat_path: Path, center: bool = False) -> SplatFile:
@@ -54,14 +61,14 @@ def load_splat_file(splat_path: Path, center: bool = False) -> SplatFile:
     print(
         f"Splat file with {num_gaussians=} loaded in {time.time() - start_time} seconds"
     )
-    return {
-        "centers": centers,
+    return SplatFile(
+        centers=centers,
         # Colors should have shape (N, 3).
-        "rgbs": splat_uint8[:, 24:27] / 255.0,
-        "opacities": splat_uint8[:, 27:28] / 255.0,
+        rgbs=splat_uint8[:, 24:27] / 255.0,
+        opacities=splat_uint8[:, 27:28] / 255.0,
         # Covariances should have shape (N, 3, 3).
-        "covariances": covariances,
-    }
+        covariances=covariances,
+    )
 
 
 def load_ply_file(ply_file_path: Path, center: bool = False) -> SplatFile:
@@ -88,12 +95,12 @@ def load_ply_file(ply_file_path: Path, center: bool = False) -> SplatFile:
     print(
         f"PLY file with {num_gaussians=} loaded in {time.time() - start_time} seconds"
     )
-    return {
-        "centers": positions,
-        "rgbs": colors,
-        "opacities": opacities,
-        "covariances": covariances,
-    }
+    return SplatFile(
+        centers=positions,
+        rgbs=colors,
+        opacities=opacities,
+        covariances=covariances,
+    )
 
 
 def main(
@@ -115,10 +122,10 @@ def main(
         server.scene.add_transform_controls(f"/{i}")
         gs_handle = server.scene.add_gaussian_splats(
             f"/{i}/gaussian_splats",
-            centers=splat_data["centers"],
-            rgbs=splat_data["rgbs"],
-            opacities=splat_data["opacities"],
-            covariances=splat_data["covariances"],
+            centers=splat_data.centers,
+            rgbs=splat_data.rgbs,
+            opacities=splat_data.opacities,
+            covariances=splat_data.covariances,
         )
 
         remove_button = server.gui.add_button(f"Remove splat object {i}")
