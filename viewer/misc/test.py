@@ -12,11 +12,11 @@ def main():
     # settings
     # z方向を上に
     server.scene.set_up_direction((0.0, 0.0, 1.0))
-
+    r = 0.3
     # add objects
     sphere = server.scene.add_icosphere(
         name="/sphere",
-        radius=0.3,
+        radius=r,
         color=(255, 100, 100),
         position=(0.0, 0.0, 0.0),
     )

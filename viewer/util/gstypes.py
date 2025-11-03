@@ -5,7 +5,6 @@ from enum import Enum
 import numpy as np
 import numpy.typing as npt
 import viser
-from viser import GaussianSplatHandle
 
 from util.utils import ColorCycle
 
@@ -43,13 +42,14 @@ class GSplatMode(Enum):
 # 表示/非表示 と 表示モードを管理する
 # 一度作成した Splat は後から変えられないっぽいので、表示形式の数だけ Splat を作成している
 class GSplatHandle:
-    gsplat: GaussianSplatHandle
-    gsplat_class_view: GaussianSplatHandle
-    gsplat_points_view: GaussianSplatHandle
+    gsplat: viser.GaussianSplatHandle
+    gsplat_class_view: viser.GaussianSplatHandle
+    gsplat_points_view: viser.PointCloudHandle
     current_mode: GSplatMode
     visible_checkbox: viser.GuiCheckboxHandle | None
     def __init__(self, data: GSplatData, name: str, server: viser.ViserServer):
         self.current_mode = GSplatMode.NORMAL
+        self.visible_checkbox = None
         # 通常
         self.gsplat = server.scene.add_gaussian_splats(
             name=f"{name}",
@@ -70,17 +70,13 @@ class GSplatHandle:
         )
         self.gsplat_class_view.visible = False      
         # ポイントビュー用
-        cov_points_view = data.covariances.copy()
-        cov_points_view[:, :3, :3] = np.array([[0.00001, 0.0, 0.0], [0.0, 0.00001, 0.0], [0.0, 0.0, 0.00001]])
-        self.gsplat_points_view = server.scene.add_gaussian_splats(
+        self.gsplat_points_view = server.scene.add_point_cloud(
             name=f"{name}_points_view",
-            centers=data.centers,
-            rgbs=data.rgbs,
-            opacities=data.opacities,
-            covariances=cov_points_view,
+            points=data.centers,
+            colors=data.rgbs,
+            point_size=0.001,
         )
         self.gsplat_points_view.visible = False
-        self.visible_checkbox = None
 
     def non_visible_all(self):
         self.gsplat.visible = False
