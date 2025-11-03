@@ -3,7 +3,7 @@ from pathlib import Path
 import numpy as np
 
 import viser
-from loader import load_ply_file
+from util.loader import load_ply_file
 
 
 def main():

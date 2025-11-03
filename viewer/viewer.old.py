@@ -3,9 +3,9 @@ import numpy as np
 from viser import GaussianSplatHandle
 import time
 from pathlib import Path
-from loader import load_ply_file
+from util.loader import load_ply_file
 
-from util.util import GSplatHandle
+from util.gstypes import GSplatHandle
 
 # gsplatとチェックボックスのセット
 class GsplatWithGui:
