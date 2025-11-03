@@ -3,7 +3,7 @@ import numpy as np
 from viser import GaussianSplatHandle
 import time
 from pathlib import Path
-from util.loader import load_ply_file
+from util.gsloader import load_ply_file
 from util.gstypes import GSplatData, GSplatDataWithClass, GSplatHandle, GSplatFolder, GSplatMode
 
 class Viewer:
@@ -95,9 +95,8 @@ class Viewer:
 
 if __name__ == "__main__":
     viewer = Viewer()
-    ply_path = Path(__file__).parent / "../data/akan.ply"
+    ply_path = Path(__file__).parent / "../../data/akan.ply"
     splat_data = load_ply_file(ply_path, center=True)
-    splat_data.name = "akan"
     splat_data.print_shape()
 
     # 座標変換（x軸周り-90°）
@@ -111,7 +110,10 @@ if __name__ == "__main__":
 
     viewer.add_gsplat(splat_data, name="forest", folder_name="akan")
 
-    ply_path = Path(__file__).parent / "../data/cactus.ply"
+    # === ここまで本質 ===
+    # === ここから複製を追加してるだけ ===
+
+    ply_path = Path(__file__).parent / "../../data/cactus.ply"
     splat_data = load_ply_file(ply_path, center=True)
     splat_data.print_shape()
 

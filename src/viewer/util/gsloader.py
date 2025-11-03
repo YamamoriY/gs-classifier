@@ -15,6 +15,7 @@ from viser import transforms as tf
 
 from util.gstypes import GSplatData
 
+# viser 公式リポジトリ参考
 
 def load_splat_file(splat_path: Path, center: bool = False) -> GSplatData:
     start_time = time.time()
