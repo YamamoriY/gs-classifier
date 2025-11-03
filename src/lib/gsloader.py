@@ -13,7 +13,7 @@ from plyfile import PlyData
 import viser
 from viser import transforms as tf
 
-from util.gstypes import GSplatData
+from src.lib.types import GSplatData
 
 # viser 公式リポジトリ参考
 

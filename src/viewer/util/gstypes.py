@@ -6,24 +6,8 @@ import numpy as np
 import numpy.typing as npt
 import viser
 
-from util.utils import ColorCycle
-
-# 最も基本的な Gaussian Splat のデータクラス
-@dataclass
-class GSplatData:
-    centers: npt.NDArray[np.floating]
-    rgbs: npt.NDArray[np.floating]
-    opacities: npt.NDArray[np.floating]
-    covariances: npt.NDArray[np.floating]
-
-    def print_shape(self):
-        print(f"centers: {self.centers.shape}")
-        print(f"rgbs: {self.rgbs.shape}")
-        print(f"opacities: {self.opacities.shape}")
-        print(f"covariances: {self.covariances.shape}")
-        print(f"x range: {np.min(self.centers[:, 0])} to {np.max(self.centers[:, 0])}")
-        print(f"y range: {np.min(self.centers[:, 1])} to {np.max(self.centers[:, 1])}")
-        print(f"z range: {np.min(self.centers[:, 2])} to {np.max(self.centers[:, 2])}")
+from src.viewer.util.utils import ColorCycle
+from src.lib.types import GSplatData
 
 # クラス分類を追加したバージョン
 @dataclass
@@ -38,7 +22,7 @@ class GSplatMode(Enum):
     CLASS_VIEW = "class view"
     POINTS_VIEW = "points view"     
 
-# GSplatData のハンドラー
+# GSplatData のビュアー用ハンドル
 # 表示/非表示 と 表示モードを管理する
 # 一度作成した Splat は後から変えられないっぽいので、表示形式の数だけ Splat を作成している
 class GSplatHandle:

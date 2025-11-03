@@ -3,8 +3,8 @@ import numpy as np
 from viser import GaussianSplatHandle
 import time
 from pathlib import Path
-from util.gsloader import load_ply_file
-from util.gstypes import GSplatData, GSplatDataWithClass, GSplatHandle, GSplatFolder, GSplatMode
+from src.lib.gsloader import load_ply_file
+from src.viewer.util.gstypes import GSplatData, GSplatDataWithClass, GSplatHandle, GSplatFolder, GSplatMode
 
 class Viewer:
     server: viser.ViserServer

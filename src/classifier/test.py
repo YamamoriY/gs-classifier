@@ -1,7 +1,7 @@
 from pathlib import Path
 import numpy as np
-from viewer.util.gsloader import load_ply_file
-from viewer.viewer import Viewer
+from src.lib.gsloader import load_ply_file
+from src.viewer.viewer import Viewer
 
 if __name__ == "__main__":
     viewer = Viewer()
@@ -19,3 +19,4 @@ if __name__ == "__main__":
     splat_data.covariances = np.einsum("ij,njk,kl->nil", R.T, splat_data.covariances, R)
 
     viewer.add_gsplat(splat_data, name="forest", folder_name="akan")
+    viewer.run()
