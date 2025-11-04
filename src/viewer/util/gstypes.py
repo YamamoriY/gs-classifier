@@ -9,13 +9,6 @@ import viser
 from src.viewer.util.utils import ColorCycle
 from src.lib.types import GSplatData
 
-# クラス分類を追加したバージョン
-@dataclass
-class GSplatDataWithClass(GSplatData):
-    class_ids: npt.NDArray[np.integer]
-
-    # NOTE: print 後で作る
-
 # ビュアーの表示モード
 class GSplatMode(Enum):
     NORMAL = "normal"

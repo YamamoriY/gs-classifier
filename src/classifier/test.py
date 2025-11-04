@@ -3,7 +3,7 @@ import numpy as np
 from src.lib.gsloader import load_ply_file
 from src.viewer.viewer import Viewer
 from src.classifier.util.pcd import *
-from src.viewer.util.gstypes import GSplatDataWithClass
+from src.lib.types import GSplatDataWithLabels
 from src.lib.ground import SegGround, GroundLerp
 import matplotlib.pyplot as plt
 import time
@@ -38,12 +38,12 @@ if __name__ == "__main__":
     viewer = Viewer()
 
     viewer.add_gsplats(
-        GSplatDataWithClass(
+        GSplatDataWithLabels(
             centers=splat_data.centers,
             rgbs=splat_data.rgbs,
             opacities=splat_data.opacities,
             covariances=splat_data.covariances,
-            class_ids=labels,
+            labels=labels,
         ),
         name="ground",
         folder_name="akan",

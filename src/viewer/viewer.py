@@ -4,7 +4,8 @@ from viser import GaussianSplatHandle
 import time
 from pathlib import Path
 from src.lib.gsloader import load_ply_file
-from src.viewer.util.gstypes import GSplatData, GSplatDataWithClass, GSplatHandle, GSplatFolder, GSplatMode
+from src.viewer.util.gstypes import GSplatData, GSplatHandle, GSplatFolder, GSplatMode
+from src.lib.types import GSplatDataWithLabels
 
 class Viewer:
     server: viser.ViserServer
@@ -37,20 +38,20 @@ class Viewer:
     # class_idsで分類される
     def add_gsplats(
         self,
-        gsplatData: GSplatDataWithClass,
+        gsplatData: GSplatDataWithLabels,
         name: str,
         folder_name: str = "default",
     ) -> GaussianSplatHandle:
-        class_ids_set = set(gsplatData.class_ids)
-        for class_id in class_ids_set:
-            class_ids_mask = gsplatData.class_ids == class_id
+        labels_set = set(gsplatData.labels)
+        for label in labels_set:
+            labels_mask = gsplatData.labels == label
             tmp = GSplatData(
-                centers=gsplatData.centers[class_ids_mask],
-                rgbs=gsplatData.rgbs[class_ids_mask],
-                opacities=gsplatData.opacities[class_ids_mask],
-                covariances=gsplatData.covariances[class_ids_mask],
+                centers=gsplatData.centers[labels_mask],
+                rgbs=gsplatData.rgbs[labels_mask],
+                opacities=gsplatData.opacities[labels_mask],
+                covariances=gsplatData.covariances[labels_mask],
             )
-            self.add_gsplat(tmp, name=f"{name}_{class_id}", folder_name=folder_name)
+            self.add_gsplat(tmp, name=f"{name}_{label}", folder_name=folder_name)
 
     # gsplatを追加
     # folder_nameが大分類（同じ名前のグループは同じフォルダに入る）
