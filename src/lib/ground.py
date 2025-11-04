@@ -2,6 +2,7 @@ from __future__ import annotations
 import math
 import numpy as np
 from scipy.stats import gaussian_kde
+from scipy.interpolate import RegularGridInterpolator
 from src.lib.kdtree import KDTree
 from typing import Callable, dataclass_transform
 from dataclasses import dataclass
@@ -54,6 +55,7 @@ class SegGround:
         max_density_z = (bin_edges[max_bin_idx] + bin_edges[max_bin_idx + 1]) / 2
         return max_density_z
 
+    # 地面の高さを四分木で求める。メッシュ状（未ソート）のデータを返す
     def ground_heights(self, depth: int = 6):
         calc_height_func = lambda point, radius, limit: self.ground_height(point, radius, limit)
         root_point = np.array([(self.x_max + self.x_min) / 2, (self.y_max + self.y_min) / 2, 0])
@@ -127,12 +129,36 @@ class QuadNode:
         res.append(self.point + np.array([shift, -shift, 0]))
         return res
 
-# GroundResult から地面の高さを補間
+# GroundResult から地面の高さを補間する
 class GroundLerp:
     results: GroundResult
+    f: RegularGridInterpolator
     def __init__(self, results: GroundResult):
         self.results = results
+
+        # 線形補完関数を作成する
+        # GroundResult からいろいろ整形
+        points_array = np.array(results.points)
+        x_unique = np.sort(np.unique(points_array[:, 0]))
+        y_unique = np.sort(np.unique(points_array[:, 1]))
+        nx, ny = len(x_unique), len(y_unique)
+        value_dict = {(pt[0], pt[1]): pt[2] for pt in results.points}
+        values_2d = np.zeros((nx, ny))
+        for i, x in enumerate(x_unique):
+            for j, y in enumerate(y_unique):
+                values_2d[i, j] = value_dict[(x, y)]
+
+        # 範囲外のときはNaN
+        self.f = RegularGridInterpolator((x_unique, y_unique), values_2d, method='linear', bounds_error=False, fill_value=np.nan)
     
-    def lerp(self, point: np.ndarray) -> float:
-        return np.interp(point[2], self.results.points[:, 2], self.results.points[:, 0])
+    # 線形補完 points: (N, 2)
+    def lerp(self, points: np.ndarray) -> float:
+        return self.f(points)
+
+    # 地面かどうかを判定 points: (N, 3)
+    def is_ground(self, points: np.ndarray) -> np.ndarray:
+        points_xy = points[:, :2]
+        points_ground = self.lerp(points_xy)
+        labels = np.where(np.isnan(points_ground), False, points[:, 2] < points_ground + 0.1)
+        return labels
 

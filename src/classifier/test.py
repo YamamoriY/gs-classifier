@@ -4,7 +4,7 @@ from src.lib.gsloader import load_ply_file
 from src.viewer.viewer import Viewer
 from src.classifier.util.pcd import *
 from src.viewer.util.gstypes import GSplatDataWithClass
-from src.lib.ground import SegGround
+from src.lib.ground import SegGround, GroundLerp
 import matplotlib.pyplot as plt
 import time
 if __name__ == "__main__":
@@ -29,12 +29,24 @@ if __name__ == "__main__":
     print(len(root.results.points))
     print(f"time: {time.time() - time_start} seconds")
 
+    ground_lerp = GroundLerp(root.results)
+    is_ground_labels = ground_lerp.is_ground(splat_data.centers)
+    labels = np.zeros(len(splat_data.centers), dtype=int)
+    labels[is_ground_labels] = 1
+    print("ground_labels.shape: ", is_ground_labels.shape)
+
     viewer = Viewer()
-    viewer.add_gsplat(splat_data, name="field", folder_name="akan")
-    viewer.server.scene.add_point_cloud(
+
+    viewer.add_gsplats(
+        GSplatDataWithClass(
+            centers=splat_data.centers,
+            rgbs=splat_data.rgbs,
+            opacities=splat_data.opacities,
+            covariances=splat_data.covariances,
+            class_ids=labels,
+        ),
         name="ground",
-        points=np.array(root.results.points),
-        colors=(255, 0, 0),
-        point_size=0.05,
+        folder_name="akan",
     )
+
     viewer.run()
