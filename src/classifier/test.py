@@ -3,7 +3,6 @@ import numpy as np
 from src.lib.gsloader import load_ply_file
 from src.viewer.viewer import Viewer
 from src.classifier.util.pcd import *
-from src.classifier.util.pdal import *
 from src.viewer.util.gstypes import GSplatDataWithClass
 from src.lib.ground import SegGround
 import matplotlib.pyplot as plt

@@ -1,10 +1,10 @@
 from __future__ import annotations
 import math
-from laspy.copc import dataclass
 import numpy as np
 from scipy.stats import gaussian_kde
 from src.lib.cylinder_kdtree import KDTree
 from typing import Callable, dataclass_transform
+from dataclasses import dataclass
 
 class SegGround:
     points: np.ndarray
