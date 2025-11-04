@@ -4,7 +4,7 @@ from viser import GaussianSplatHandle
 import time
 from pathlib import Path
 from src.lib.gsloader import load_ply_file
-from src.viewer.util.gstypes import GSplatData, GSplatHandle, GSplatFolder, GSplatMode
+from src.viewer.util.types import GSplatData, GSplatHandle, GSplatFolder, GSplatMode
 from src.lib.types import GSplatDataWithLabels
 
 class Viewer:

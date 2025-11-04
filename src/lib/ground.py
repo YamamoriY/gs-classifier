@@ -60,7 +60,7 @@ class SegGround:
         calc_height_func = lambda point, radius, limit: self.ground_height(point, radius, limit)
         root_point = np.array([(self.x_max + self.x_min) / 2, (self.y_max + self.y_min) / 2, 0])
         root_limit = LimitRange(self.z_min, self.z_max)
-        root_radius = max(self.x_max - self.x_min, self.y_max - self.y_min) / 2
+        root_radius = math.sqrt((self.x_max - self.x_min)**2 + (self.y_max - self.y_min)**2) / 2
         root = QuadNode(root_point, root_radius, root_limit, depth, None, calc_height_func)
         root.insert()
         return root

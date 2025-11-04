@@ -1,15 +1,12 @@
 from __future__ import annotations
-
-from dataclasses import dataclass
 from enum import Enum
-import numpy as np
-import numpy.typing as npt
 import viser
-
 from src.viewer.util.utils import ColorCycle
 from src.lib.types import GSplatData
 
-# ビュアーの表示モード
+# ビュアーのためのデータクラス
+
+# 表示モード
 class GSplatMode(Enum):
     NORMAL = "normal"
     CLASS_VIEW = "class view"
