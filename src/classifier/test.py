@@ -22,9 +22,12 @@ if __name__ == "__main__":
     splat_data.centers = splat_data.centers @ R
     splat_data.covariances = np.einsum("ij,njk,kl->nil", R.T, splat_data.covariances, R)
 
+    print("start seg ground...")
+    time_start = time.time()
     seg_ground = SegGround(splat_data.centers)
-    root = seg_ground.ground_heights()
+    root = seg_ground.ground_heights(depth=6)
     print(len(root.results.points))
+    print(f"time: {time.time() - time_start} seconds")
 
     viewer = Viewer()
     viewer.add_gsplat(splat_data, name="field", folder_name="akan")

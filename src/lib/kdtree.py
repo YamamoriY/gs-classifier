@@ -8,7 +8,6 @@ class KDTree:
     pcd_flat: o3d.geometry.PointCloud
     kdtree_flat: o3d.geometry.KDTreeFlann
 
-
     def __init__(self, points):
         self.points = points
         # for cylinder search
@@ -35,6 +34,7 @@ class KDTree:
         [num_points, indices, distances] = self.kdtree_flat.search_knn_vector_3d(search_point, k)
         return num_points, indices, distances
 
+    # [z-dz, z+dz] の範囲を探索
     def height_search(self, z, dz):
         search_point = np.array([0, 0, z])
         [num_points, indices, distances] = self.kdtree_height.search_radius_vector_3d(search_point, dz)

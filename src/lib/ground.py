@@ -2,7 +2,7 @@ from __future__ import annotations
 import math
 import numpy as np
 from scipy.stats import gaussian_kde
-from src.lib.cylinder_kdtree import KDTree
+from src.lib.kdtree import KDTree
 from typing import Callable, dataclass_transform
 from dataclasses import dataclass
 
@@ -41,18 +41,25 @@ class SegGround:
         if len(near_points_z) < 50:
             return (limit.z_min + limit.z_max) / 2
 
-        kde = gaussian_kde(near_points_z)
-        range = np.linspace(np.min(near_points_z), np.max(near_points_z), 1000)
-        density = kde(range)
-        max_density_z = range[np.argmax(density)]
+        # 旧アルゴリズム（ガウス分布由来, O(n^2)）
+        # kde = gaussian_kde(near_points_z)
+        # range = np.linspace(np.min(near_points_z), np.max(near_points_z), 1000)
+        # density = kde(range)
+        # max_density_z = range[np.argmax(density)]
+
+        # ヒストグラムで最頻値を求める（O(n)）
+        # 地面以上に極端な平面の集まりはおそらく発生せず、これでよさげ
+        counts, bin_edges = np.histogram(near_points_z, bins=1000)  # 1000は離散化の数、適当
+        max_bin_idx = np.argmax(counts)
+        max_density_z = (bin_edges[max_bin_idx] + bin_edges[max_bin_idx + 1]) / 2
         return max_density_z
 
-    def ground_heights(self):
+    def ground_heights(self, depth: int = 6):
         calc_height_func = lambda point, radius, limit: self.ground_height(point, radius, limit)
         root_point = np.array([(self.x_max + self.x_min) / 2, (self.y_max + self.y_min) / 2, 0])
         root_limit = LimitRange(self.z_min, self.z_max)
         root_radius = max(self.x_max - self.x_min, self.y_max - self.y_min) / 2
-        root = QuadNode(root_point, root_radius, root_limit, 6, None, calc_height_func)
+        root = QuadNode(root_point, root_radius, root_limit, depth, None, calc_height_func)
         root.insert()
         return root
 
@@ -119,4 +126,13 @@ class QuadNode:
         res.append(self.point + np.array([-shift, -shift, 0]))
         res.append(self.point + np.array([shift, -shift, 0]))
         return res
+
+# GroundResult から地面の高さを補間
+class GroundLerp:
+    results: GroundResult
+    def __init__(self, results: GroundResult):
+        self.results = results
+    
+    def lerp(self, point: np.ndarray) -> float:
+        return np.interp(point[2], self.results.points[:, 2], self.results.points[:, 0])
 

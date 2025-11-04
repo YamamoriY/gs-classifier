@@ -113,39 +113,39 @@ if __name__ == "__main__":
     # === ここまで本質 ===
     # === ここから複製を追加してるだけ ===
 
-    ply_path = Path(__file__).parent / "../../data/cactus.ply"
-    splat_data = load_ply_file(ply_path, center=True)
-    splat_data.print_shape()
+    # ply_path = Path(__file__).parent / "../../data/cactus.ply"
+    # splat_data = load_ply_file(ply_path, center=True)
+    # splat_data.print_shape()
 
-    # 座標変換（x軸周り-90°）
-    R = np.array([
-        [1, 0, 0],
-        [0, 0, -1],
-        [0, 1, 0],
-    ])
-    splat_data.centers = splat_data.centers @ R
-    splat_data.covariances = np.einsum("ij,njk,kl->nil", R.T, splat_data.covariances, R)
+    # # 座標変換（x軸周り-90°）
+    # R = np.array([
+    #     [1, 0, 0],
+    #     [0, 0, -1],
+    #     [0, 1, 0],
+    # ])
+    # splat_data.centers = splat_data.centers @ R
+    # splat_data.covariances = np.einsum("ij,njk,kl->nil", R.T, splat_data.covariances, R)
 
-    viewer.add_gsplat(splat_data, name="cactus", folder_name="akan")
+    # viewer.add_gsplat(splat_data, name="cactus", folder_name="akan")
 
-    splat_data.centers += np.array([0.0, 2.0, 0.0])
-    half_index = len(splat_data.centers) // 2
-    class_ids = np.zeros(len(splat_data.centers), dtype=int)
-    class_ids[:half_index] = 1
-    splat_data.centers[class_ids == 1] += np.array([0.0, 2.0, 0.0])
-    splat_data.rgbs[class_ids == 0] = np.array([1.0, 0.0, 0.0])
-    splat_data.rgbs[class_ids == 1] = np.array([0.0, 1.0, 0.0])
-    viewer.add_gsplats(
-        gsplatData=GSplatDataWithClass(
-            centers=splat_data.centers,
-            rgbs=splat_data.rgbs,
-            opacities=splat_data.opacities,
-            covariances=splat_data.covariances,
-            class_ids=class_ids,
-        ),
-        name="classify_cactus",
-        folder_name="cactus",
-    )
+    # splat_data.centers += np.array([0.0, 2.0, 0.0])
+    # half_index = len(splat_data.centers) // 2
+    # class_ids = np.zeros(len(splat_data.centers), dtype=int)
+    # class_ids[:half_index] = 1
+    # splat_data.centers[class_ids == 1] += np.array([0.0, 2.0, 0.0])
+    # splat_data.rgbs[class_ids == 0] = np.array([1.0, 0.0, 0.0])
+    # splat_data.rgbs[class_ids == 1] = np.array([0.0, 1.0, 0.0])
+    # viewer.add_gsplats(
+    #     gsplatData=GSplatDataWithClass(
+    #         centers=splat_data.centers,
+    #         rgbs=splat_data.rgbs,
+    #         opacities=splat_data.opacities,
+    #         covariances=splat_data.covariances,
+    #         class_ids=class_ids,
+    #     ),
+    #     name="classify_cactus",
+    #     folder_name="cactus",
+    # )
 
 
     viewer.run()
