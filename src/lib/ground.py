@@ -6,6 +6,8 @@ from src.lib.cylinder_kdtree import KDTree
 from typing import Callable, dataclass_transform
 from dataclasses import dataclass
 
+# 地面を抽出するプログラム
+# 四分木的にフィールドの高さを推定
 class SegGround:
     points: np.ndarray
     cylinder_kdtree: KDTree
@@ -54,15 +56,18 @@ class SegGround:
         root.insert()
         return root
 
+# 地面として許容する高さ
 @dataclass
 class LimitRange:
     z_min: float
     z_max: float
 
+# 結果の格納
 @dataclass
 class GroundResult:
     points: list[np.ndarray]
 
+# 四分木のノード
 class QuadNode:
     point: np.ndarray
     height: float
@@ -91,6 +96,7 @@ class QuadNode:
         else:
             self.results = results
     
+    # 四分木にノードを追加（再帰）
     def insert(self):
         if self.children is not None or self.depth <= 0:
             self.results.points.append(np.array([self.point[0], self.point[1], self.height]))
@@ -104,6 +110,7 @@ class QuadNode:
             self.children.append(child)
             child.insert()
 
+    # 次のノードの座標
     def next_coordinates(self):
         shift = self.radius / math.sqrt(2) / 2
         res: list[np.ndarray] = []
