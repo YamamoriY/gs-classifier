@@ -3,11 +3,15 @@ import numpy as np
 from src.lib.gsloader import load_ply_file
 from src.viewer.viewer import Viewer
 from src.classifier.util.pcd import *
-from src.lib.types import GSplatDataWithLabels
+from src.lib.types import GSplatData
 from src.lib.ground import SegGround, GroundLerp
 import matplotlib.pyplot as plt
 import time
 from src.lib.denoise import Denoise
+
+# 3DGS の .ply ファイル (postshot 出力は確認済み）を読み込んで、
+# ノイズ除去、地面分類、保存を行う
+
 if __name__ == "__main__":
     # === ロード ===
     ply_path = Path(__file__).parent / "../../data/akan.ply"
@@ -28,16 +32,11 @@ if __name__ == "__main__":
     print("start denoise")
     denoise = Denoise(splat_data.centers)
     indices = denoise.denoise_dbscan(radius=0.1)
-    labels = np.zeros(len(splat_data.centers), dtype=int)
-    labels[indices] = 1
+    splat_data.labels[indices] = 1
 
     # === ノイズを分離 ===
-    gsplat_data = GSplatDataWithLabels.from_gsplat_data(
-        gsplat_data=splat_data,
-        labels=labels,
-    )
-    noise_gs = gsplat_data.split_by_label()[0]
-    gs = gsplat_data.split_by_label()[1]
+    noise_gs = splat_data.split_by_label()[0]
+    gs = splat_data.split_by_label()[1]
 
     # === 地面を作成 ===
     print("start seg ground")
@@ -46,22 +45,40 @@ if __name__ == "__main__":
 
     # === 地面を分類 ===
     ground_lerp = GroundLerp(ground.results)
-    under_ground_indices, ground_indices, above_ground_indices = ground_lerp.classify_ground(gs.centers)
+    under_ground_indices, ground_indices, above_ground_indices = ground_lerp.classify_ground(gs.centers, above_threshold=0.15)
     gs.labels[under_ground_indices] = 0
     gs.labels[ground_indices] = 1
     gs.labels[above_ground_indices] = 2
+    under_ground_gs = gs.split_by_label()[0]
+    ground_gs = gs.split_by_label()[1]
+    above_ground_gs = gs.split_by_label()[2]
+
+    # === 保存 ===
+    noise_gs.save_to_npz("data/noise_gs.npz")
+    ground_gs.save_to_npz("data/ground_gs.npz")
+    under_ground_gs.save_to_npz("data/under_ground_gs.npz")
+    above_ground_gs.save_to_npz("data/above_ground_gs.npz")
 
     # === 表示 ===
     viewer = Viewer()
-    viewer.add_gsplats(
-        gs,
+    viewer.add_gsplat(
+        ground_gs,
         name="ground",
-        folder_name="akan",
+        folder_name="ground",
     )
-    viewer.add_gsplats(
+    viewer.add_gsplat(
+        under_ground_gs,
+        name="under_ground",
+        folder_name="under_ground",
+    )
+    viewer.add_gsplat(
+        above_ground_gs,
+        name="above_ground",
+        folder_name="above_ground",
+    )
+    viewer.add_gsplat(
         noise_gs,
         name="noise",
         folder_name="noise",
     )
-
     viewer.run()

@@ -5,7 +5,7 @@ import time
 from pathlib import Path
 from src.lib.gsloader import load_ply_file
 from src.viewer.util.types import GSplatData, GSplatHandle, GSplatFolder, GSplatMode
-from src.lib.types import GSplatDataWithLabels
+from src.lib.types import GSplatData
 
 class Viewer:
     server: viser.ViserServer
@@ -34,11 +34,12 @@ class Viewer:
             for gsplatfolder in self.gsplatfolders.values():
                 gsplatfolder.change_mode(GSplatMode(mode_dropdown.value))
 
-    # gsplatを一気に追加したいとき
-    # class_idsで分類される
-    def add_gsplats(
+    # gsplatを追加する
+    # 同じ folder_name のものは同じフォルダに入る
+    # フォルダ内では labels で分類される
+    def add_gsplat(
         self,
-        gsplatData: GSplatDataWithLabels,
+        gsplatData: GSplatData,
         name: str,
         folder_name: str = "default",
     ) -> GaussianSplatHandle:
@@ -51,11 +52,10 @@ class Viewer:
                 opacities=gsplatData.opacities[labels_mask],
                 covariances=gsplatData.covariances[labels_mask],
             )
-            self.add_gsplat(tmp, name=f"{name}_{label}", folder_name=folder_name)
+            self._add_gsplat(tmp, name=f"{name}_{label}", folder_name=folder_name)
 
     # gsplatを追加
-    # folder_nameが大分類（同じ名前のグループは同じフォルダに入る）
-    def add_gsplat(self, gsplatData: GSplatData, name: str, folder_name: str = "default"):
+    def _add_gsplat(self, gsplatData: GSplatData, name: str, folder_name: str = "default"):
         if folder_name not in self.gsplatfolders:
             self._add_folder(folder_name)
         with self.folder_gui:
@@ -89,7 +89,7 @@ class Viewer:
                         elif step_buttons.value == ">":
                             gsplatfolder.show_next()
 
-    # ビューアを実行
+    # ビュアーを実行
     def run(self):
         while True:
             time.sleep(10.0)
