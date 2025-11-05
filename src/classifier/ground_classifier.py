@@ -45,10 +45,11 @@ if __name__ == "__main__":
 
     # === 地面を分類 ===
     ground_lerp = GroundLerp(ground.results)
-    under_ground_indices, ground_indices, above_ground_indices = ground_lerp.classify_ground(gs.centers, above_threshold=0.15)
+    under_ground_indices, ground_indices, above_ground_indices, hags = ground_lerp.classify_ground(gs.centers, above_threshold=0.15)
     gs.labels[under_ground_indices] = 0
     gs.labels[ground_indices] = 1
     gs.labels[above_ground_indices] = 2
+    gs.additional_data["hags"] = hags
     under_ground_gs = gs.split_by_label()[0]
     ground_gs = gs.split_by_label()[1]
     above_ground_gs = gs.split_by_label()[2]

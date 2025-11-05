@@ -164,4 +164,4 @@ class GroundLerp:
         under_ground_indices = np.where(hags < -under_threshold)[0]
         ground_indices = np.where((hags >= -under_threshold) & (hags < above_threshold))[0]
         above_ground_indices = np.where(hags >= above_threshold)[0]
-        return under_ground_indices, ground_indices, above_ground_indices
+        return under_ground_indices, ground_indices, above_ground_indices, hags

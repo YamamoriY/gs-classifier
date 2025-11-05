@@ -11,6 +11,7 @@ class GSplatData:
     opacities: npt.NDArray[np.floating]
     covariances: npt.NDArray[np.floating]
     labels: npt.NDArray[np.integer]   # 指定されなければ全部 0 の配列
+    additional_data: dict[str, npt.NDArray[np.floating]] | None = None  # (N, ) の配列を想定。他を入れても動くが、split_by_label で継承されない
     def __init__(
         self,
         centers: npt.NDArray[np.floating],
@@ -18,6 +19,7 @@ class GSplatData:
         opacities: npt.NDArray[np.floating],
         covariances: npt.NDArray[np.floating],
         labels: npt.NDArray[np.integer] | None = None,   # optional
+        additional_data: dict[str, npt.NDArray[np.floating]] | None = None,
     ):
         self.centers = centers
         self.rgbs = rgbs
@@ -26,29 +28,38 @@ class GSplatData:
         if labels is None:
             labels = np.zeros(len(centers), dtype=int)
         self.labels = labels
+        if additional_data is None:
+            additional_data = {}
+        self.additional_data = additional_data
 
     # path に保存
     def save_to_npz(self, path: str):
-        np.savez(
-            path,
-            centers=self.centers,
-            rgbs=self.rgbs,
-            opacities=self.opacities,
-            covariances=self.covariances,
-            labels=self.labels,
-        )
+        data_dict = {
+            "centers": self.centers,
+            "rgbs": self.rgbs,
+            "opacities": self.opacities,
+            "covariances": self.covariances,
+            "labels": self.labels,
+        }
+        if self.additional_data is not None:
+            for key, value in self.additional_data.items():
+                data_dict[f"additional_{key}"] = value
+        np.savez(path, **data_dict)
 
     # path から読み込む
     @classmethod
     def load_from_npz(cls, path: str) -> GSplatData:
         data = np.load(path)
-        return cls(
-            centers=data["centers"],
-            rgbs=data["rgbs"],
-            opacities=data["opacities"],
-            covariances=data["covariances"],
-            labels=data["labels"],
-        )
+        centers = data["centers"]
+        rgbs = data["rgbs"]
+        opacities = data["opacities"]
+        covariances = data["covariances"]
+        labels = data["labels"]
+        additional_data = {}
+        for key in data.keys():
+            if key.startswith("additional_"):
+                additional_data[key[len("additional_"):]] = data[key]
+        return cls(centers=centers, rgbs=rgbs, opacities=opacities, covariances=covariances, labels=labels, additional_data=additional_data)
 
     def print_shape(self):
         print(f"GSplat Data Shape:")
@@ -71,10 +82,18 @@ class GSplatData:
         res = []
         for label in unique_labels:
             mask = self.labels == label
+            additional_data = {}
+            for key, value in self.additional_data.items():
+                if len(value) != len(self.centers):
+                    print(f"additional data {key} has wrong shape: {value.shape} != {len(self.centers)}")
+                    print(f"additional data {key} is not inherited to new GSplatData")
+                    continue
+                additional_data[key] = value[mask]
             res.append(GSplatData(
                 centers=self.centers[mask],
                 rgbs=self.rgbs[mask],
                 opacities=self.opacities[mask],
                 covariances=self.covariances[mask],
+                additional_data=additional_data,
             ))
         return res
