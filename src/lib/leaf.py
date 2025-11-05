@@ -3,7 +3,7 @@ from src.lib.types import GSplatData
 
 
 def rgb_to_hsv(rgb: np.ndarray) -> np.ndarray:
-    # シグモイドを作用
+    # シグモイドを作用（.ply のデフォルトはシグモイド前の状態？）
     rgb = 1 / (1 + np.exp(-rgb))
 
     r, g, b = rgb[:, 0], rgb[:, 1], rgb[:, 2]
@@ -33,6 +33,7 @@ def rgb_to_hsv(rgb: np.ndarray) -> np.ndarray:
     return np.stack([h, s, v], axis=1)
 
 # 雑に葉っぱを取り除くクラス
+# 本番ではなく単木抽出の前処理とかで
 # NOTE: hsv空間で DBSCAN とかしたらもっとよくなりそう
 class LeafClassifier:
     gs: GSplatData
@@ -43,28 +44,21 @@ class LeafClassifier:
         hsv = rgb_to_hsv(self.gs.rgbs)
         h, s, v = hsv[:, 0], hsv[:, 1], hsv[:, 2]
         
-        # 緑・青系の色の条件
-        # Hue: 緑は約60°-180°（0.17-0.5）、青は約180°-240°（0.5-0.67）の範囲
-        # Saturation: ある程度彩度が高い（灰色っぽくない）
-        # Value: 暗めの色も含めるため、明度の下限を下げる
-        
+        # 葉を消す
         green_mask = (
             (h >= 0.17) & (h <= 0.67) &  # 緑・青系の色相
-            (s >= 0.02) &                # 彩度条件を緩和
-            (v >= 0.05)                  # 明度条件を緩和（暗めの色も含める）
+            (s >= 0.02) &                # 彩度
+            (v >= 0.05)                  # 明度（暗めの色も含める）
         )
         
-        # 黄色系の色の条件（彩度が高い場合）
-        # Hue: 黄色は約50°-60°（0.14-0.17）の範囲
-        # Saturation: 彩度が高い（鮮やかな黄色）
+        # 日が当たって黄色っぽい葉を消す
         yellow_mask = (
             (h >= 0.08) & (h <= 0.17) &  # 黄色系の色相
-            (s >= 0.1) &                 # 高い彩度
-            (v >= 0.2)                  # 最低限の明度
+            (s >= 0.1) &                 # 彩度
+            (v >= 0.2)                   # ある程度の明度
         )
         
-        # 緑・青系または黄色系のマスクを結合
+        # マスクを結合
         leaf_mask = green_mask | yellow_mask
         leaf_indices = np.where(leaf_mask)[0]
-        
         return leaf_indices
