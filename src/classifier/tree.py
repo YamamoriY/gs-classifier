@@ -16,8 +16,11 @@ if __name__ == "__main__":
     leaf_indices = leaf_classifier.classify_leaf()
     above_ground_gs.labels[leaf_indices] = 1
     above_ground_gs.print_shape()
+    leaf_gs = above_ground_gs.split_by_label()[1]
+    objects_gs = above_ground_gs.split_by_label()[0]
     
     viewer = Viewer()
     viewer.add_gsplat(ground_gs, name="ground", folder_name="ground")
-    viewer.add_gsplat(above_ground_gs, name="objects", folder_name="objects")
+    viewer.add_gsplat(objects_gs, name="objects", folder_name="objects")
+    viewer.add_gsplat(leaf_gs, name="leaf", folder_name="leaf")
     viewer.run()
