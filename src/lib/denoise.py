@@ -12,7 +12,9 @@ class Denoise:
         self.points = points
         self.kdtree = KDTree(points)
 
-    def denoise(self, radius: float = 0.1):
+    # ノイズの idx を返す
+    # ばか時間かかるのでなし
+    def denoise_naive(self, radius: float = 0.1) -> np.ndarray:
         noise_indices = []
         for i in range(len(self.points)):
             num_points, indices, distances = self.kdtree.cylinder_search(self.points[i], radius)
@@ -22,8 +24,10 @@ class Denoise:
                 print(f"denoise: {i} / {len(self.points)}")
         return np.array(noise_indices)
 
-    # ランダムサンプリングしてノイズを除去する。まぁよさげ
-    def denoise2(self, radius: float = 0.1):
+    # ノイズの idx を返す
+    # ランダムサンプリングして周辺(xy平面的な) 0.1 以内に点が100個未満ならその領域を削除
+    # NOTE: ふつうにランダムじゃなくて、メッシュみたいにサンプリングしたほうがいい
+    def denoise_density(self, radius: float = 0.1) -> np.ndarray:
         noise_indices = []
         random_points = self.points[np.random.choice(len(self.points), size=1000000, replace=False)]
         for i in range(len(random_points)):
@@ -33,7 +37,9 @@ class Denoise:
             
         return np.unique(noise_indices)
 
-    def denoise3(self, radius: float = 0.1):
+    # ノイズではない idx を返す
+    # DBSCANで点数の多いクラスターを抽出
+    def denoise_dbscan(self, radius: float = 0.1) -> np.ndarray:
         dbscan = DBSCAN(eps=radius * 2, min_samples=50)
         labels = dbscan.fit_predict(self.points)
         unique, counts = np.unique(labels, return_counts=True)

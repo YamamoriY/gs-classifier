@@ -59,9 +59,17 @@ class GSplatDataWithLabels(GSplatData):
 
     def split_by_label(self) -> list[GSplatDataWithLabels]:
         unique_labels = np.unique(self.labels)
-        作成中！！
-
-
+        res = []
+        for label in unique_labels:
+            mask = self.labels == label
+            res.append(GSplatDataWithLabels(
+                centers=self.centers[mask],
+                rgbs=self.rgbs[mask],
+                opacities=self.opacities[mask],
+                covariances=self.covariances[mask],
+                labels=np.zeros_like(self.labels[mask]),
+            ))
+        return res
 
     def print_shape(self):
         super().print_shape()
