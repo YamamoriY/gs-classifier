@@ -156,9 +156,12 @@ class GroundLerp:
         return self.f(points)
 
     # 地面かどうかを判定 points: (N, 3)
-    def is_ground(self, points: np.ndarray) -> np.ndarray:
+    # ground の高さから threshold 離れるまでは ground point
+    def classify_ground(self, points: np.ndarray, under_threshold: float = 0.1, above_threshold: float = 0.2) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         points_xy = points[:, :2]
         points_ground = self.lerp(points_xy)
-        labels = np.where(np.isnan(points_ground), False, points[:, 2] < points_ground + 0.1)
-        return labels
-
+        hags = points[:, 2] - points_ground   # 地面からの高さ
+        under_ground_indices = np.where(hags < -under_threshold)[0]
+        ground_indices = np.where((hags >= -under_threshold) & (hags < above_threshold))[0]
+        above_ground_indices = np.where(hags >= above_threshold)[0]
+        return under_ground_indices, ground_indices, above_ground_indices

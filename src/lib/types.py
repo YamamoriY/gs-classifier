@@ -47,6 +47,22 @@ class GSplatDataWithLabels(GSplatData):
         super().__init__(centers, rgbs, opacities, covariances)
         self.labels = labels
 
+    @classmethod
+    def from_gsplat_data(cls, gsplat_data: GSplatData, labels: npt.NDArray[np.integer]) -> GSplatDataWithLabels:
+        return cls(
+            centers=gsplat_data.centers,
+            rgbs=gsplat_data.rgbs,
+            opacities=gsplat_data.opacities,
+            covariances=gsplat_data.covariances,
+            labels=labels,
+        )
+
+    def split_by_label(self) -> list[GSplatDataWithLabels]:
+        unique_labels = np.unique(self.labels)
+        作成中！！
+
+
+
     def print_shape(self):
         super().print_shape()
         unique_labels, counts = np.unique(self.labels, return_counts=True)
