@@ -37,6 +37,8 @@ class Denoise:
             
         return np.unique(noise_indices)
 
+    
+
     # ノイズではない idx を返す
     # DBSCANで点数の多いクラスターを抽出
     def denoise_dbscan(self, radius: float = 0.1) -> np.ndarray:

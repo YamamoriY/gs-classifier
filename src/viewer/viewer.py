@@ -42,6 +42,7 @@ class Viewer:
         gsplatData: GSplatData,
         name: str,
         folder_name: str = "default",
+        visible: bool = True,
     ) -> GaussianSplatHandle:
         labels_set = set(gsplatData.labels)
         for label in labels_set:
@@ -52,16 +53,16 @@ class Viewer:
                 opacities=gsplatData.opacities[labels_mask],
                 covariances=gsplatData.covariances[labels_mask],
             )
-            self._add_gsplat(tmp, name=f"{name}_{label}", folder_name=folder_name)
+            self._add_gsplat(tmp, name=f"{name}_{label}", folder_name=folder_name, visible=visible)
 
     # gsplatを追加
-    def _add_gsplat(self, gsplatData: GSplatData, name: str, folder_name: str = "default"):
+    def _add_gsplat(self, gsplatData: GSplatData, name: str, folder_name: str = "default", visible: bool = True):
         if folder_name not in self.gsplatfolders:
             self._add_folder(folder_name)
         with self.folder_gui:
             with self.gsplatfolders[folder_name].folder:
-                checkbox = self.server.gui.add_checkbox(name, initial_value=True)
-                gsplat_handle = self.gsplatfolders[folder_name].add_gsplat(GSplatHandle(gsplatData, name, self.server))
+                checkbox = self.server.gui.add_checkbox(name, initial_value=visible)
+                gsplat_handle = self.gsplatfolders[folder_name].add_gsplat(GSplatHandle(gsplatData, name, self.server, visible))
                 gsplat_handle.attachVisibleCheckbox(checkbox)
 
     # フォルダを追加する内部関数

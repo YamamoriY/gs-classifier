@@ -75,6 +75,18 @@ class GSplatData:
         for label, count in zip(unique_labels, counts):
             print(f"        label {label}: {count} ({count / len(self.labels) * 100:.2f}%)")
 
+    def copy(self) -> GSplatData:
+        res = GSplatData(
+            centers=self.centers.copy(),
+            rgbs=self.rgbs.copy(),
+            opacities=self.opacities.copy(),
+            covariances=self.covariances.copy(),
+            labels=self.labels.copy(),
+        )
+        for key, value in self.additional_data.items():
+            res.additional_data[key] = value.copy()
+        return res
+
     # labels に従って分割された GSPlatData を作る。
     # 新たな GSplatData の labels は 0 
     def split_by_label(self) -> list[GSplatData]:
