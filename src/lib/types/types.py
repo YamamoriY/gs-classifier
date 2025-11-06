@@ -61,20 +61,6 @@ class GSplatData:
                 additional_data[key[len("additional_"):]] = data[key]
         return cls(centers=centers, rgbs=rgbs, opacities=opacities, covariances=covariances, labels=labels, additional_data=additional_data)
 
-    def print_shape(self):
-        print(f"GSplat Data Shape:")
-        print(f"    centers: {self.centers.shape}")
-        print(f"    rgbs: {self.rgbs.shape}")
-        print(f"    opacities: {self.opacities.shape}")
-        print(f"    covariances: {self.covariances.shape}")
-        print(f"    x range: {np.min(self.centers[:, 0])} to {np.max(self.centers[:, 0])}")
-        print(f"    y range: {np.min(self.centers[:, 1])} to {np.max(self.centers[:, 1])}")
-        print(f"    z range: {np.min(self.centers[:, 2])} to {np.max(self.centers[:, 2])}")
-        unique_labels, counts = np.unique(self.labels, return_counts=True)
-        print(f"    label distribution:")
-        for label, count in zip(unique_labels, counts):
-            print(f"        label {label}: {count} ({count / len(self.labels) * 100:.2f}%)")
-
     def copy(self) -> GSplatData:
         res = GSplatData(
             centers=self.centers.copy(),
@@ -109,3 +95,22 @@ class GSplatData:
                 additional_data=additional_data,
             ))
         return res
+
+    def coordinate_transform(self, R: npt.NDArray[np.floating]):
+        self.centers = self.centers @ R
+        self.covariances = np.einsum("ij,njk,kl->nil", R.T, self.covariances, R)
+        return self
+
+    def print_shape(self):
+        print(f"GSplat Data Shape:")
+        print(f"    centers: {self.centers.shape}")
+        print(f"    rgbs: {self.rgbs.shape}")
+        print(f"    opacities: {self.opacities.shape}")
+        print(f"    covariances: {self.covariances.shape}")
+        print(f"    x range: {np.min(self.centers[:, 0])} to {np.max(self.centers[:, 0])}")
+        print(f"    y range: {np.min(self.centers[:, 1])} to {np.max(self.centers[:, 1])}")
+        print(f"    z range: {np.min(self.centers[:, 2])} to {np.max(self.centers[:, 2])}")
+        unique_labels, counts = np.unique(self.labels, return_counts=True)
+        print(f"    label distribution:")
+        for label, count in zip(unique_labels, counts):
+            print(f"        label {label}: {count} ({count / len(self.labels) * 100:.2f}%)")

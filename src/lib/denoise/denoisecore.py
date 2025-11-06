@@ -5,7 +5,7 @@ from src.lib.kdtree import KDTree
 
 # 2次元平面上で密度の低い点をノイズとして除去する
 
-class Denoise:
+class DenoiseCore:
     points: np.ndarray
     flatten_points: np.ndarray
     def __init__(self, points: np.ndarray):
@@ -36,8 +36,6 @@ class Denoise:
                 noise_indices.extend(indices)
             
         return np.unique(noise_indices)
-
-    
 
     # ノイズではない idx を返す
     # DBSCANで点数の多いクラスターを抽出
