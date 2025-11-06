@@ -6,7 +6,7 @@ from src.lib.gsloader import load_ply_file
 from pathlib import Path
 import matplotlib.pyplot as plt
 from src.lib.leaf.leaf import LeafDetector
-from src.lib.stem.stem import StemDetector
+from src.lib.stem.stem import StemClassifier
 from src.lib.kdtree import KDTree
 from src.lib.denoise.denoise import NoiseRemover
 
@@ -27,7 +27,7 @@ if __name__ == "__main__":
     denoise = NoiseRemover(mid_gs)
     mid_gs, noise_gs = denoise.denoise_3d_density(radius=0.1, point_count=200)
 
-    stem_detector = StemDetector(mid_gs)
+    stem_detector = StemClassifier(mid_gs)
     mid_gs = stem_detector.dbscan_stem()
 
     viewer = Viewer()

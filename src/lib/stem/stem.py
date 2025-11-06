@@ -3,7 +3,7 @@ import numpy as np
 from sklearn.cluster import DBSCAN
 from src.lib.kdtree import KDTree
 
-class StemDetector:
+class StemClassifier:
     def __init__(self, gs: GSplatData):
         self.gs = gs
 
