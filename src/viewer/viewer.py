@@ -65,6 +65,17 @@ class Viewer:
                 gsplat_handle = self.gsplatfolders[folder_name].add_gsplat(GSplatHandle(gsplatData, name, self.server, visible))
                 gsplat_handle.attachVisibleCheckbox(checkbox)
 
+    def add_point_cloud(self, points: np.ndarray, name: str, colors: np.ndarray | None = None):
+        if colors is None:
+            colors = np.ones_like(points)
+        point_cloud = self.server.scene.add_point_cloud(
+            name=f"{name}",
+            points=points,
+            colors=colors,
+            point_size=0.001,
+        )
+        return point_cloud
+
     # フォルダを追加する内部関数
     def _add_folder(self, folder_name: str):
         if folder_name not in self.gsplatfolders:
