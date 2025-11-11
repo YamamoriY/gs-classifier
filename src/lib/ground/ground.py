@@ -1,4 +1,4 @@
-from src.lib.ground.groundcore import GroundDetector, GroundLerp
+from src.lib.ground.groundcore import SegGround, GroundLerp
 from src.lib.types.gstype import GSplatData
 
 class GroundDetector:
@@ -9,7 +9,7 @@ class GroundDetector:
     def detect_ground(self) -> tuple[GSplatData, GSplatData, GSplatData]:
         print("start detect ground")
         # 地面を作成
-        seg_ground = GroundDetector(self.gs.centers)
+        seg_ground = SegGround(self.gs.centers)
         ground = seg_ground.ground_heights(depth=6)
 
         # 地面を分類

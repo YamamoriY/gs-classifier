@@ -6,7 +6,7 @@ from src.lib.gsloader import load_ply_file
 from pathlib import Path
 import matplotlib.pyplot as plt
 from src.lib.leaf.leaf import LeafDetector
-from src.lib.stem.stem import StemClassifier
+from src.lib.trunk.trunk import TrunkClassifier
 from src.lib.kdtree import KDTree
 from src.lib.denoise.denoise import NoiseRemover
 
@@ -27,12 +27,15 @@ if __name__ == "__main__":
     denoise = NoiseRemover(mid_gs)
     mid_gs, noise_gs = denoise.denoise_3d_density(radius=0.1, point_count=200)
 
-    stem_detector = StemClassifier(mid_gs)
-    mid_gs = stem_detector.dbscan_stem()
+    trunk_detector = TrunkClassifier(mid_gs)
+    mid_gs = trunk_detector.dbscan_trunk()
+
+    # 保存
+    mid_gs.save_to_npz("tmp/mid_gs.npz")
 
     viewer = Viewer()
     viewer.add_gsplat(ground_gs, name="ground", folder_name="ground", visible=False)
-    viewer.add_gsplat(mid_gs, name="mid_stem", folder_name="mid_stem")
+    viewer.add_gsplat(mid_gs, name="mid_trunk", folder_name="mid_trunk")
     viewer.add_gsplat(noise_gs, name="mid_noise", folder_name="mid_noise", visible=False)
     viewer.add_gsplat(else_gs, name="else", folder_name="else", visible=False)
     viewer.add_gsplat(leaf_gs, name="leaf", folder_name="leaf", visible=False)

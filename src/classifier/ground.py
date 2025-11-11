@@ -35,10 +35,10 @@ if __name__ == "__main__":
     ground_gs, under_ground_gs, above_ground_gs = detect_ground.detect_ground()
 
     # === 保存 ===
-    noise_gs.save_to_npz("data/noise_gs.npz")
-    ground_gs.save_to_npz("data/ground_gs.npz")
-    under_ground_gs.save_to_npz("data/under_ground_gs.npz")
-    above_ground_gs.save_to_npz("data/above_ground_gs.npz")
+    noise_gs.save_to_npz("tmp/noise_gs.npz")
+    ground_gs.save_to_npz("tmp/ground_gs.npz")
+    under_ground_gs.save_to_npz("tmp/under_ground_gs.npz")
+    above_ground_gs.save_to_npz("tmp/above_ground_gs.npz")
 
     # === 表示 ===
     viewer = Viewer()
