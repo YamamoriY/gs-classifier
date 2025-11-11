@@ -1,6 +1,6 @@
 # Leaf のラッパー
 from src.lib.leaf.leafcore import LeafClassifier
-from src.lib.types.types import GSplatData
+from src.lib.types.gstype import GSplatData
 
 class LeafDetector:
     gs: GSplatData

@@ -1,5 +1,5 @@
 from src.lib.ground.groundcore import GroundDetector, GroundLerp
-from src.lib.types.types import GSplatData
+from src.lib.types.gstype import GSplatData
 
 class GroundDetector:
     gs: GSplatData

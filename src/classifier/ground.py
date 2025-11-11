@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from src.lib.gsloader import load_ply_file
 from src.viewer.viewer import Viewer
 from src.classifier.util.pcd import *
-from src.lib.types.types import GSplatData
+from src.lib.types.gstype import GSplatData
 from src.lib.denoise.denoise import NoiseRemover
 from src.lib.ground.ground import GroundDetector
 

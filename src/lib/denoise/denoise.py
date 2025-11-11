@@ -1,7 +1,7 @@
 # Denoise のラッパー
 # GSplatData を受け取る
 from src.lib.denoise.denoisecore import DenoiseCore
-from src.lib.types.types import GSplatData
+from src.lib.types.gstype import GSplatData
 import numpy as np
 from src.lib.kdtree import KDTree
 

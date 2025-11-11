@@ -1,6 +1,6 @@
 import numpy as np
 from sklearn.cluster import DBSCAN
-from src.lib.types.types import GSplatData
+from src.lib.types.gstype import GSplatData
 from src.viewer.viewer import Viewer
 from src.lib.gsloader import load_ply_file
 from pathlib import Path

@@ -1,5 +1,5 @@
 import numpy as np
-from src.lib.types.types import GSplatData
+from src.lib.types.gstype import GSplatData
 
 
 def rgb_to_hsv(rgb: np.ndarray) -> np.ndarray:

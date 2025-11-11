@@ -2,7 +2,7 @@ from __future__ import annotations
 from enum import Enum
 import viser
 from src.viewer.util.utils import ColorCycle
-from src.lib.types.types import GSplatData
+from src.lib.types.gstype import GSplatData
 
 # ビュアーのためのデータクラス
 

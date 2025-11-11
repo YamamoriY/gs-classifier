@@ -1,4 +1,4 @@
-from src.lib.types.types import GSplatData
+from src.lib.types.gstype import GSplatData
 import numpy as np
 from sklearn.cluster import DBSCAN
 from src.lib.kdtree import KDTree
