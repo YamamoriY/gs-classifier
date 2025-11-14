@@ -6,6 +6,7 @@ from pathlib import Path
 from src.lib.gsloader import load_ply_file
 from src.viewer.util.types import GSplatData, GSplatHandle, GSplatFolder, GSplatMode
 from src.lib.types.gstype import GSplatData
+from PIL import Image
 
 class Viewer:
     server: viser.ViserServer
@@ -24,6 +25,16 @@ class Viewer:
         self.server.scene.set_up_direction((0.0, 0.0, 1.0))  # z方向を上に
 
         # gui
+        button = self.server.gui.add_button("Render")
+        @button.on_click
+        def _(event: viser.GuiEvent):
+            この辺にカメラつらーって移動して写真を出力するコードを書く
+            client = event.client
+            client.camera.position = (0.0, 0.0, 5.0)
+            client.camera.look_at((0.0, 0.0, 0.0))
+            image: np.ndarray = client.get_render(height=720, width=1280)
+            Image.fromarray(image).save("tmp/render.png")
+
         mode_dropdown: viser.GuiDropdownHandle = self.server.gui.add_dropdown(
             "Mode",
             options=[GSplatMode.NORMAL.value, GSplatMode.POINTS_VIEW.value, GSplatMode.CLASS_VIEW.value],

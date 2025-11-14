@@ -1,42 +1,30 @@
-import numpy as np
-from sklearn.cluster import DBSCAN
 from src.lib.types.gstype import GSplatData
-from src.viewer.viewer import Viewer
-from src.lib.gsloader import load_ply_file
-from pathlib import Path
-import matplotlib.pyplot as plt
-from src.lib.leaf.leaf import LeafDetector
-from src.lib.trunk.trunk import TrunkClassifier
+from src.lib.types.trunk import TrunkLocation
 from src.lib.kdtree import KDTree
-from src.lib.denoise.denoise import NoiseRemover
+from src.viewer.viewer import Viewer
+from src.lib.image2d.image2d import Image2D
 
 if __name__ == "__main__":
-    ground_gs = GSplatData.load_from_npz("data/ground_gs.npz")
-    above_ground_gs = GSplatData.load_from_npz("data/above_ground_gs.npz")
+    mid_gs = GSplatData.load_from_npz("tmp/mid_gs.npz")
+    ground_gs = GSplatData.load_from_npz("tmp/ground_gs.npz")
+    above_gs = GSplatData.load_from_npz("tmp/above_ground_gs.npz")
+    trunk_location = TrunkLocation.from_gs(mid_gs)
+    trunk_kdtree = KDTree(trunk_location.trunk_locations)
+    above_gs.reset_labels()
+    for i in range(len(above_gs.centers)):
+        num_points, indices, distances = trunk_kdtree.knn_search(above_gs.centers[i], 1)
+        if num_points <= 0:
+            print("ここにくるのはおかしいぜ")
+            continue
+        if distances[0] > 1:
+            # 幹から離れすぎているので、なし
+            continue
+        above_gs.labels[i] = indices[0] + 1
 
-    # 葉を分離
-    detect_leaf = LeafDetector(above_ground_gs)
-    leaf_gs, objects_gs = detect_leaf.detect_leaf()
-
-    # 中央高度を抜き出し
-    hags = objects_gs.additional_data["hags"]
-    objects_gs.labels[(hags > 1.5) & (hags < 2.5)] = 1
-    mid_gs = objects_gs.split_by_label()[1]
-    else_gs = objects_gs.split_by_label()[0]
-
-    denoise = NoiseRemover(mid_gs)
-    mid_gs, noise_gs = denoise.denoise_3d_density(radius=0.1, point_count=200)
-
-    trunk_detector = TrunkClassifier(mid_gs)
-    mid_gs = trunk_detector.dbscan_trunk()
-
-    # 保存
-    mid_gs.save_to_npz("tmp/mid_gs.npz")
+    # image2d = Image2D(above_gs, trunk_location)
+    # above_gs = image2d.segment_trees(radius=1)
 
     viewer = Viewer()
-    viewer.add_gsplat(ground_gs, name="ground", folder_name="ground", visible=False)
-    viewer.add_gsplat(mid_gs, name="mid_trunk", folder_name="mid_trunk")
-    viewer.add_gsplat(noise_gs, name="mid_noise", folder_name="mid_noise", visible=False)
-    viewer.add_gsplat(else_gs, name="else", folder_name="else", visible=False)
-    viewer.add_gsplat(leaf_gs, name="leaf", folder_name="leaf", visible=False)
+    viewer.add_gsplat(ground_gs, name="ground", folder_name="ground")
+    viewer.add_gsplat(above_gs, name="above", folder_name="above")
     viewer.run()

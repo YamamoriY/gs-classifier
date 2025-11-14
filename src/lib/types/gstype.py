@@ -73,8 +73,13 @@ class GSplatData:
             res.additional_data[key] = value.copy()
         return res
 
+    def reset_labels(self):
+        self.labels = np.zeros_like(self.labels)
+        return self
+
     # labels に従って分割された GSPlatData を作る。
     # 新たな GSplatData の labels は 0 
+    # 配列の順番は label の小さい順
     def split_by_label(self) -> list[GSplatData]:
         unique_labels = np.unique(self.labels)
         res = []
