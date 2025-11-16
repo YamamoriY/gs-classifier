@@ -26,5 +26,5 @@ if __name__ == "__main__":
 
     viewer = Viewer()
     viewer.add_gsplat(ground_gs, name="ground", folder_name="ground")
-    viewer.add_gsplat(above_gs, name="above", folder_name="above")
+    viewer.add_gsplat(above_gs, name="above", folder_name="above", image_out=True)
     viewer.run()

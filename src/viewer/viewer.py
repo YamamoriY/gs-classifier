@@ -12,11 +12,13 @@ class Viewer:
     server: viser.ViserServer
     gsplatfolders: dict[str, GSplatFolder]
     folder_gui: viser.GuiFolderHandle
+    image_outs: list[GSplatHandle]
 
     def __init__(self):
         self.server = viser.ViserServer(port=8080)
         self.gsplatfolders = {}
         self.folder_gui = self.server.gui.add_folder("Objects")
+        self.image_outs = []
         self.setup()
 
     # 初期設定
@@ -25,15 +27,32 @@ class Viewer:
         self.server.scene.set_up_direction((0.0, 0.0, 1.0))  # z方向を上に
 
         # gui
-        button = self.server.gui.add_button("Render")
+        button = self.server.gui.add_button("Print Images")
         @button.on_click
         def _(event: viser.GuiEvent):
-            この辺にカメラつらーって移動して写真を出力するコードを書く
             client = event.client
-            client.camera.position = (0.0, 0.0, 5.0)
-            client.camera.look_at((0.0, 0.0, 0.0))
-            image: np.ndarray = client.get_render(height=720, width=1280)
-            Image.fromarray(image).save("tmp/render.png")
+            # いったん全部オフにする
+            for gsplatfolder in self.gsplatfolders.values():
+                gsplatfolder.hide_all()
+                print(f"hidden gsplatfolder: {gsplatfolder.folder}")
+            before = None
+            for out_gs in self.image_outs:
+                if before is not None:
+                    before.set_visible(False)
+                out_gs.set_visible(True)
+                # 写真を撮る
+                mid = np.mean(out_gs.data.centers, axis=0)
+                sigma_z = np.std(out_gs.data.centers[:, 2])
+                dist = 4.0 * sigma_z  # 係数は適当
+                d = [[0.0, 1.0, 0.0], [1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [-1.0, 0.0, 0.0]]
+                for i in range(len(d)):
+                    client.camera.position = (mid[0] + d[i][0] * dist, mid[1] + d[i][1] * dist, mid[2] + d[i][2] * dist)
+                    client.camera.look_at = mid
+                    image: np.ndarray = client.get_render(width=600, height=800)
+                    output_path = Path(f"tmp/images/{out_gs.gsplat.name}/{i+1}.png")
+                    output_path.parent.mkdir(parents=True, exist_ok=True)
+                    Image.fromarray(image).save(output_path)
+                before = out_gs
 
         mode_dropdown: viser.GuiDropdownHandle = self.server.gui.add_dropdown(
             "Mode",
@@ -48,12 +67,14 @@ class Viewer:
     # gsplatを追加する
     # 同じ folder_name のものは同じフォルダに入る
     # フォルダ内では labels で分類される
+    # image_out = True の場合は，ボタンで画像が自動出力できる
     def add_gsplat(
         self,
         gsplatData: GSplatData,
         name: str,
         folder_name: str = "default",
         visible: bool = True,
+        image_out: bool = False,
     ) -> GaussianSplatHandle:
         labels_set = set(gsplatData.labels)
         for label in labels_set:
@@ -64,16 +85,18 @@ class Viewer:
                 opacities=gsplatData.opacities[labels_mask],
                 covariances=gsplatData.covariances[labels_mask],
             )
-            self._add_gsplat(tmp, name=f"{name}_{label}", folder_name=folder_name, visible=visible)
+            self._add_gsplat(tmp, name=f"{name}_{label}", folder_name=folder_name, visible=visible, image_out=image_out)
 
     # gsplatを追加
-    def _add_gsplat(self, gsplatData: GSplatData, name: str, folder_name: str = "default", visible: bool = True):
+    def _add_gsplat(self, gsplatData: GSplatData, name: str, folder_name: str = "default", visible: bool = True, image_out: bool = False):
         if folder_name not in self.gsplatfolders:
             self._add_folder(folder_name)
         with self.folder_gui:
             with self.gsplatfolders[folder_name].folder:
                 checkbox = self.server.gui.add_checkbox(name, initial_value=visible)
                 gsplat_handle = self.gsplatfolders[folder_name].add_gsplat(GSplatHandle(gsplatData, name, self.server, visible))
+                if image_out:
+                    self.image_outs.append(gsplat_handle)
                 gsplat_handle.attachVisibleCheckbox(checkbox)
 
     def add_point_cloud(self, points: np.ndarray, name: str, colors: np.ndarray | None = None):
@@ -132,7 +155,7 @@ if __name__ == "__main__":
     splat_data.centers = splat_data.centers @ R
     splat_data.covariances = np.einsum("ij,njk,kl->nil", R.T, splat_data.covariances, R)
 
-    viewer.add_gsplat(splat_data, name="forest", folder_name="akan")
+    # viewer.add_gsplat(splat_data, name="forest", folder_name="akan")
 
     # === ここまで本質 ===
     # === ここから複製を追加してるだけ ===

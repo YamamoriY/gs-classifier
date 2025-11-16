@@ -21,7 +21,9 @@ class GSplatHandle:
     gsplat_points_view: viser.PointCloudHandle
     current_mode: GSplatMode
     visible_checkbox: viser.GuiCheckboxHandle | None
+    data: GSplatData
     def __init__(self, data: GSplatData, name: str, server: viser.ViserServer, visible: bool = True):
+        self.data = data
         self.current_mode = GSplatMode.NORMAL
         self.visible_checkbox = None
         # 通常
