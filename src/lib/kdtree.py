@@ -7,6 +7,9 @@ class KDTree:
     points_flat: np.ndarray
     pcd_flat: o3d.geometry.PointCloud
     kdtree_flat: o3d.geometry.KDTreeFlann
+    points_height: np.ndarray       # 一応書き足し．エラー未チェックだけど書き間違えとかなければ大丈夫なはず
+    pcd_height: o3d.geometry.PointCloud
+    kdtree_height: o3d.geometry.KDTreeFlann
 
     def __init__(self, points):
         self.points = points
