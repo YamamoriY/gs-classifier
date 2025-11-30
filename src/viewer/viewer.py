@@ -142,7 +142,7 @@ class Viewer:
 
 if __name__ == "__main__":
     viewer = Viewer()
-    ply_path = Path(__file__).parent / "../../data/akan.ply"
+    ply_path = Path(__file__).parent / "../../data/takino.ply"
     splat_data = load_ply_file(ply_path, center=True)
     splat_data.print_shape()
 
@@ -155,7 +155,7 @@ if __name__ == "__main__":
     splat_data.centers = splat_data.centers @ R
     splat_data.covariances = np.einsum("ij,njk,kl->nil", R.T, splat_data.covariances, R)
 
-    # viewer.add_gsplat(splat_data, name="forest", folder_name="akan")
+    viewer.add_gsplat(splat_data, name="forest", folder_name="takino")
 
     # === ここまで本質 ===
     # === ここから複製を追加してるだけ ===

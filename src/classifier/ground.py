@@ -14,7 +14,7 @@ from src.lib.ground.ground import GroundDetector
 if __name__ == "__main__":
     # === ロード ===
     print("load ply file")
-    ply_path = Path(__file__).parent / "../../data/akan.ply"
+    ply_path = Path(__file__).parent / "../../data/takino.ply"
     splat_data = load_ply_file(ply_path, center=True)
 
     # 座標変換（x軸周り-90°）
@@ -27,12 +27,12 @@ if __name__ == "__main__":
 
     # === ノイズ除去 ===
     print("start denoise")
-    denoise = NoiseRemover(splat_data)
-    gs, noise_gs = denoise.denoise_2d_dbscan(radius=0.1)
+    noise_remover = NoiseRemover(splat_data)
+    gs, noise_gs = noise_remover.denoise_2d_dbscan(radius=0.1)
 
     # === 地面を作成 ===
-    detect_ground = GroundDetector(gs)
-    ground_gs, under_ground_gs, above_ground_gs = detect_ground.detect_ground()
+    ground_detector = GroundDetector(gs)
+    ground_gs, under_ground_gs, above_ground_gs = ground_detector.detect_ground(under_threshold=0.1, above_threshold=0.2)
 
     # === 保存 ===
     noise_gs.save_to_npz("tmp/noise_gs.npz")

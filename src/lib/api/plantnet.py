@@ -13,15 +13,15 @@ api_endpoint = f"https://my-api.plantnet.org/v2/identify/{PROJECT}?api-key={API_
 # 現在のファイルのディレクトリを基準にパスを解決
 current_dir = Path(__file__).parent
 project_root = current_dir.parent.parent.parent
-image_path_1 = project_root / "tmp" / "test" / "a.jpg"
+image_path_1 = project_root / "tmp" / "images" / "render_above_3" / "1.png"
 image_data_1 = open(image_path_1, 'rb')
 
-image_path_2 = project_root / "tmp" / "test" / "a.jpg"
+image_path_2 = project_root / "tmp" / "images" / "render_above_3" / "2.png"
 image_data_2 = open(image_path_2, 'rb')
 
 
 data = {
-    'organs': ['flower', 'leaf']
+    'organs': ['habit', 'flower']
 }
 
 files = [

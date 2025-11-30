@@ -6,7 +6,7 @@ class GroundDetector:
     def __init__(self, gs: GSplatData):
         self.gs = gs
 
-    def detect_ground(self) -> tuple[GSplatData, GSplatData, GSplatData]:
+    def detect_ground(self, under_threshold: float = 0.1, above_threshold: float = 0.2) -> tuple[GSplatData, GSplatData, GSplatData]:
         print("start detect ground")
         # 地面を作成
         seg_ground = SegGround(self.gs.centers)
@@ -14,7 +14,7 @@ class GroundDetector:
 
         # 地面を分類
         ground_lerp = GroundLerp(ground.results)
-        under_ground_indices, ground_indices, above_ground_indices, hags = ground_lerp.classify_ground(self.gs.centers, above_threshold=0.15)
+        under_ground_indices, ground_indices, above_ground_indices, hags = ground_lerp.classify_ground(self.gs.centers, under_threshold=under_threshold, above_threshold=above_threshold)
         self.gs.labels[under_ground_indices] = 0
         self.gs.labels[ground_indices] = 1
         self.gs.labels[above_ground_indices] = 2
