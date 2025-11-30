@@ -6,12 +6,20 @@ import numpy.typing as npt
 
 # 最も基本的な Gaussian Splat のデータクラス
 class GSplatData:
+    # gsplat の必須データ
     centers: npt.NDArray[np.floating]
     rgbs: npt.NDArray[np.floating]
     opacities: npt.NDArray[np.floating]
     covariances: npt.NDArray[np.floating]
-    labels: npt.NDArray[np.integer]   # 指定されなければ全部 0 の配列
-    additional_data: dict[str, npt.NDArray[np.floating]] | None = None  # (N, ) の配列を想定。他を入れても動くが、split_by_label で継承されない
+
+    # 任意で木の分類などを格納するラベル、指定すれば viewer で分離される
+    # 指定されなければ全部 0 の配列
+    labels: npt.NDArray[np.integer]
+
+    # 追加データ入れたいときに使う
+    # (N, ) の配列を想定。他を入れても動くが、split_by_label で継承されない
+    additional_data: dict[str, npt.NDArray[np.floating]] | None = None 
+
     def __init__(
         self,
         centers: npt.NDArray[np.floating],
