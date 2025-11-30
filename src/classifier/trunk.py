@@ -20,7 +20,7 @@ if __name__ == "__main__":
 
     # 中央高度を抜き出し
     hags = objects_gs.additional_data["hags"]
-    objects_gs.labels[(hags > 1.5) & (hags < 2.5)] = 1
+    objects_gs.labels[(hags > 0.7) & (hags < 1.7)] = 1
     mid_gs = objects_gs.split_by_label()[1]
     else_gs = objects_gs.split_by_label()[0]
 
@@ -28,7 +28,7 @@ if __name__ == "__main__":
     mid_gs, noise_gs = denoise.denoise_3d_density(radius=0.1, point_count=200)
 
     trunk_detector = TrunkClassifier(mid_gs)
-    mid_gs = trunk_detector.dbscan_trunk()
+    mid_gs = trunk_detector.run()
 
     # 保存
     mid_gs.save_to_npz("tmp/mid_gs.npz")

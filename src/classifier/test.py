@@ -1,38 +1,36 @@
 import numpy as np
 import pyransac3d as pyrsc
 from src.viewer.viewer import Viewer
+from src.lib.types.gstype import GSplatData
 
-# 3D点群データの準備 (N x 3の配列)
-# 例: 円柱状の点群を生成
-theta = np.linspace(0, 2*np.pi, 100)
-z = np.linspace(0, 10, 100)
-radius = 0.3
+points = GSplatData.load_from_npz("tmp/mid_gs.npz")
 
-points = []
-for t in theta:
-    for zz in z[:20]:
-        x = radius * np.cos(t) + np.random.normal(0, 0.1)
-        y = radius * np.sin(t) + np.random.normal(0, 0.1)
-        points.append([x, y, zz])
-        x2 = radius * np.cos(t) + np.random.normal(0, 0.1) + 1 
-        y2 = radius * np.sin(t) + np.random.normal(0, 0.1) + 1
-        points.append([x2, y2, zz])
+unique_labels = np.unique(points.labels)
+points.labels[points.labels > 5] = -1
+trunk_gss = points.split_by_label()[1:]
+# for trunk_gs in trunk_gss:
+#     cylinder = pyrsc.Cylinder()
+#     center, axis, radius, inliers = cylinder.fit(trunk_gs.centers, thresh=0.02, maxIteration=200)
+#     print(f"center: {center}, axis: {axis}, radius: {radius}, inliers: {len(inliers)} / {len(trunk_gs.centers)}")
+#     theta = np.arccos(axis[0]) * 180 / np.pi
+#     print(f"theta: {theta}")
+#     trunk_gs.labels[inliers] = 1
 
-points = np.array(points)
+# for trunk_gs in trunk_gss:
+#     line = pyrsc.Line()
+#     slope, axis, inliers = line.fit(trunk_gs.centers, thresh=0.15, maxIteration=200)
+#     print(f"slope: {slope}, axis: {axis}, inliers: {len(inliers)} / {len(trunk_gs.centers)}")
+#     theta = np.arccos(slope[2]) * 180 / np.pi
+#     print(f"theta: {theta}")
+#     trunk_gs.labels[inliers] = 1
 
-# 円柱フィッティング
-cylinder = pyrsc.Cylinder()
-center, axis, radius, inliers = cylinder.fit(points, thresh=0.2, maxIteration=2000)
-
-# 結果の表示
-print(f"円柱の中心軸上の点: {center}")
-print(f"円柱の軸方向ベクトル: {axis}")
-print(f"円柱の半径: {radius}")
-print(f"インライア数: {len(inliers)} / {len(points)}")
-
-# インライア点群の取得
-inlier_points = points[inliers]
+for i, trunk_gs in enumerate(trunk_gss):
+    means = np.mean(trunk_gs.centers, axis=0)
+    stds = np.std(trunk_gs.centers, axis=0)
+    print(f"{i}")
+    print(f"means: {means}, stds: {stds}")
 
 viewer = Viewer()
-viewer.add_point_cloud(inlier_points, name="inlier_points")
+for i, trunk_gs in enumerate(trunk_gss):
+    viewer.add_gsplat(trunk_gs, name=f"trunk_gs_{i}", folder_name=f"trunk_gs_{i}")
 viewer.run()
