@@ -6,9 +6,19 @@ import pyransac3d as pyrsc
 import matplotlib.pyplot as plt
 import scipy.stats
 
+# 幹抽出のクラス
+# 地上高 1~2m 程度の切り出された範囲を受け取ることを想定
 class TrunkClassifier:
     def __init__(self, gs: GSplatData):
         self.gs = gs
+
+    def run(self) -> GSplatData:
+        self.dbscan_trunk()
+        self.is_trunk_check_range()
+        self.is_trunk_dbscan()
+        # self.is_trunk_fit_line()  # このへん微妙だったので不採用中
+        # self.is_trunk_std()
+        return self.gs
 
     def detect_trunk_old(self) -> np.ndarray:
         # DBSCAN で trunk を分けていく
@@ -100,12 +110,4 @@ class TrunkClassifier:
             expected = np.full_like(counts, len(points_z)/20, dtype=float)
             stat, p = scipy.stats.chisquare(counts, f_exp=expected)
             
-        return self.gs
-
-    def run(self) -> GSplatData:
-        self.dbscan_trunk()
-        self.is_trunk_check_range()
-        self.is_trunk_dbscan()
-        # self.is_trunk_fit_line()
-        # self.is_trunk_std()
         return self.gs

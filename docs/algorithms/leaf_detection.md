@@ -6,8 +6,7 @@
 
 ## 手法
 
-`LeafClassifier` を使用して葉を分類します。
+`LeafClassifier` を使用して葉を分類します。 \
+特定の色範囲を葉と判定しています。 
 
-- 葉とその他のオブジェクト（幹など）に分類
-- 詳細なアルゴリズムは `src/lib/leaf/leafcore.py` を参照
 
