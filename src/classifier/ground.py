@@ -23,7 +23,14 @@ if __name__ == "__main__":
         [0, 0, -1],
         [0, 1, 0],
     ])
+    theta = -np.pi / 2 / 12
+    R2 = np.array([
+        [1, 0, 0],
+        [0, np.cos(theta), -np.sin(theta)],
+        [0, np.sin(theta), np.cos(theta)],
+    ])
     splat_data.coordinate_transform(R)
+    splat_data.coordinate_transform(R2)
 
     # === ノイズ除去 ===
     print("start denoise")

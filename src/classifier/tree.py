@@ -8,6 +8,7 @@ if __name__ == "__main__":
     mid_gs = GSplatData.load_from_npz("tmp/mid_gs.npz")
     ground_gs = GSplatData.load_from_npz("tmp/ground_gs.npz")
     above_gs = GSplatData.load_from_npz("tmp/above_ground_gs.npz")
+
     trunk_location = TrunkLocation.from_gs(mid_gs)
     trunk_kdtree = KDTree(trunk_location.trunk_locations)
     above_gs.reset_labels()
