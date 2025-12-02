@@ -52,7 +52,8 @@ gs-classifier/
 
 ### 分類の実行例
 
-実行結果は tmp/ に .npz 形式で格納されます。これは src/lib/types/gstype.py の GSplatData のオブジェクトと等価です。
+森の 3dgs データから、単木抽出まで行う手順を示します。 \
+（実行結果は tmp/ に .npz 形式で格納されます。これは src/lib/types/gstype.py の GSplatData のオブジェクトと等価です。）
 
 ```bash
 # 1. data/ に 森の3dgsの .ply データを入れる
@@ -87,7 +88,7 @@ python -m src.viewer.viewer
 - matplotlib
 - plyfile
 
-pip で全部入れられます。諸事情で requirements.txt が今ないです。今度作ります
+pdal やめたので pip で全部入れられます。諸事情で requirements.txt が今ないです。今度作ります
 
 ## 詳細
 各クラスの詳細は docs/ を確認してください。
