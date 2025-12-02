@@ -14,7 +14,7 @@ class NoiseRemover:
         self.gs = gs
 
     # 2次元平面上で DBSCAN して、最大のクラスタを抽出
-    def denoise_2d_dbscan(self, radius: float = 0.1) -> tuple[GSplatData, GSplatData]:
+    def run_2d_dbscan(self, radius: float = 0.1) -> tuple[GSplatData, GSplatData]:
         print("start denoise 2d dbscan")
         indices = self.denoise_core.denoise_dbscan(radius)
         self.gs.labels = np.zeros_like(self.gs.labels)
@@ -25,7 +25,7 @@ class NoiseRemover:
 
     # 密度の低い点を消す
     # NOTE: ここ core と分離するべき
-    def denoise_3d_density(self, radius: float = 0.1, point_count: int = 200) -> tuple[GSplatData, GSplatData]:
+    def run_3d_density(self, radius: float = 0.1, point_count: int = 200) -> tuple[GSplatData, GSplatData]:
         print("start denoise 3d density")
         tmp = self.gs.centers.copy()
         tmp[:, 2] = tmp[:, 2] * 0.5

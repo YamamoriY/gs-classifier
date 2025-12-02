@@ -20,14 +20,6 @@ class TrunkClassifier:
         # self.is_trunk_std()
         return self.gs
 
-    def detect_trunk_old(self) -> np.ndarray:
-        # DBSCAN で trunk を分けていく
-        # eps: 近傍距離を大きくして、より大雑把なクラスタリング
-        # min_samples: 最小点数を大きくして、小さなクラスタを排除
-        dbscan = DBSCAN(eps=0.1, min_samples=50)
-        labels = dbscan.fit_predict(self.gs.centers)
-        return labels
-
     # 基本。DBSCANで区分。ノイズは -1
     def dbscan_trunk(self) -> GSplatData:
         dbscan = DBSCAN(eps=0.05, min_samples=50)

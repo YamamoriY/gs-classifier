@@ -6,7 +6,7 @@ class GroundDetector:
     def __init__(self, gs: GSplatData):
         self.gs = gs
 
-    def detect_ground(self, under_threshold: float = 0.1, above_threshold: float = 0.2) -> tuple[GSplatData, GSplatData, GSplatData]:
+    def run(self, under_threshold: float = 0.1, above_threshold: float = 0.2) -> tuple[GSplatData, GSplatData, GSplatData]:
         print("start detect ground")
         # 地面を作成
         seg_ground = SegGround(self.gs.centers)

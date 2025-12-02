@@ -35,11 +35,11 @@ if __name__ == "__main__":
     # === ノイズ除去 ===
     print("start denoise")
     noise_remover = NoiseRemover(splat_data)
-    gs, noise_gs = noise_remover.denoise_2d_dbscan(radius=0.1)
+    gs, noise_gs = noise_remover.run_2d_dbscan(radius=0.1)
 
     # === 地面を作成 ===
     ground_detector = GroundDetector(gs)
-    ground_gs, under_ground_gs, above_ground_gs = ground_detector.detect_ground(under_threshold=0.1, above_threshold=0.2)
+    ground_gs, under_ground_gs, above_ground_gs = ground_detector.run(under_threshold=0.1, above_threshold=0.2)
 
     # === 保存 ===
     noise_gs.save_to_npz("tmp/noise_gs.npz")

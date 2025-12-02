@@ -7,7 +7,7 @@ class LeafDetector:
     def __init__(self, gs: GSplatData):
         self.gs = gs
 
-    def detect_leaf(self) -> tuple[GSplatData, GSplatData]:
+    def run(self) -> tuple[GSplatData, GSplatData]:
         leaf_classifier = LeafClassifier(self.gs)
         indices = leaf_classifier.classify_leaf()
         self.gs.labels[indices] = 1

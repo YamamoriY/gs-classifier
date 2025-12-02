@@ -16,7 +16,7 @@ if __name__ == "__main__":
 
     # 葉を分離
     detect_leaf = LeafDetector(above_ground_gs)
-    leaf_gs, objects_gs = detect_leaf.detect_leaf()
+    leaf_gs, objects_gs = detect_leaf.run()
 
     # 中央高度を抜き出し
     hags = objects_gs.additional_data["hags"]
@@ -25,7 +25,7 @@ if __name__ == "__main__":
     else_gs = objects_gs.split_by_label()[0]
 
     denoise = NoiseRemover(mid_gs)
-    mid_gs, noise_gs = denoise.denoise_3d_density(radius=0.1, point_count=200)
+    mid_gs, noise_gs = denoise.run_3d_density(radius=0.1, point_count=200)
 
     trunk_detector = TrunkClassifier(mid_gs)
     mid_gs = trunk_detector.run()
