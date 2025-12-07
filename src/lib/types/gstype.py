@@ -109,6 +109,17 @@ class GSplatData:
             ))
         return res
 
+    # 2つの GSplatData を結合
+    def concatenate(self, other: GSplatData) -> GSplatData:
+        return GSplatData(
+            centers=np.concatenate([self.centers, other.centers], axis=0),
+            rgbs=np.concatenate([self.rgbs, other.rgbs], axis=0),
+            opacities=np.concatenate([self.opacities, other.opacities], axis=0),
+            covariances=np.concatenate([self.covariances, other.covariances], axis=0),
+            labels=np.concatenate([self.labels, other.labels], axis=0),
+            additional_data=self.additional_data.copy(),
+        )
+
     def coordinate_transform(self, R: npt.NDArray[np.floating]):
         self.centers = self.centers @ R
         self.covariances = np.einsum("ij,njk,kl->nil", R.T, self.covariances, R)

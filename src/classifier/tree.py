@@ -3,6 +3,9 @@ from src.lib.types.trunk import TrunkLocation
 from src.lib.kdtree import KDTree
 from src.viewer.viewer import Viewer
 from src.lib.image2d.image2d import Image2D
+from src.lib.gsloader import save_ply_file
+from pathlib import Path
+import numpy as np
 
 if __name__ == "__main__":
     mid_gs = GSplatData.load_from_npz("tmp/mid_gs.npz")
@@ -10,6 +13,14 @@ if __name__ == "__main__":
     above_gs = GSplatData.load_from_npz("tmp/above_ground_gs.npz")
 
     trunk_location = TrunkLocation.from_gs(mid_gs)
+
+    # いったん書き出し用に保存
+    save_gs = above_gs.copy()
+    # ground_gs と結合
+    save_gs = ground_gs.concatenate(save_gs)
+    save_ply_file(Path("out/gs.ply"), save_gs)
+    trunk_location.save_to_json("out/trunk_location.json")
+
     trunk_kdtree = KDTree(trunk_location.trunk_locations)
     above_gs.reset_labels()
     for i in range(len(above_gs.centers)):

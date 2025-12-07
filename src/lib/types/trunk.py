@@ -2,6 +2,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from src.lib.types.gstype import GSplatData
 import numpy as np
+import json
 
 class TrunkLocation:
     trunk_locations: np.ndarray # (N, 3)
@@ -23,3 +24,15 @@ class TrunkLocation:
             trunk_locations.append(np.mean(centers[mask], axis=0))
         trunk_locations = np.array(trunk_locations)
         return cls(trunk_locations)
+
+    def save_to_json(self, path: str):
+        data = []
+        for i, trunk_location in enumerate(self.trunk_locations):
+            data.append({
+                "name": f"trunk_{i}",
+                "x": trunk_location[0],
+                "y": trunk_location[1],
+                "z": trunk_location[2],
+            })
+        with open(path, "w") as f:
+            json.dump(data, f, indent=4)
