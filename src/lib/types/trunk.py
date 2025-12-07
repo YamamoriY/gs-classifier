@@ -9,6 +9,10 @@ class TrunkLocation:
     def __init__(self, trunk_locations: np.ndarray):
         self.trunk_locations = trunk_locations
 
+    def coordinate_transform(self, R: np.ndarray):
+        self.trunk_locations = self.trunk_locations @ R
+        return self
+
     # GSplatData から TrunkLocation を作成
     # gs.labels に幹のラベルが入っている想定、-1 は除外
     @classmethod
