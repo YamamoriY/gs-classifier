@@ -27,11 +27,13 @@ class KDTree:
         self.pcd_height.points = o3d.utility.Vector3dVector(self.points_height)
         self.kdtree_height = o3d.geometry.KDTreeFlann(self.pcd_height)
 
+    # 円柱状に距離探索
     def cylinder_search(self, point, radius):
         search_point = np.array([point[0], point[1], 0])
         [num_points, indices, distances] = self.kdtree_flat.search_radius_vector_3d(search_point, radius)
         return num_points, indices, distances
 
+    # 円柱状に最近傍探索
     def knn_search(self, point, k):
         search_point = np.array([point[0], point[1], 0])
         [num_points, indices, distances] = self.kdtree_flat.search_knn_vector_3d(search_point, k)

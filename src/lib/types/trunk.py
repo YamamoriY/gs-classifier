@@ -13,6 +13,20 @@ class TrunkLocation:
         self.trunk_locations = self.trunk_locations @ R
         return self
 
+    # @classmethod
+    # def from_gs(cls, gs: GSplatData) -> TrunkLocation:
+    #     unique_labels = np.unique(gs.labels)
+    #     trunk_locations = []
+    #     for label in unique_labels:
+    #         if label == -1:
+    #             continue
+    #         mask = gs.labels == label
+    #         centers_tmp = gs.centers[mask]
+    #         covs_tmp = gs.covariances[mask]
+    #         制作中！
+            # でっかいgsのみをのこしてみたい
+
+
     # GSplatData から TrunkLocation を作成
     # gs.labels に幹のラベルが入っている想定、-1 は除外
     @classmethod

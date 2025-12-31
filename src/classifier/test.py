@@ -2,6 +2,30 @@ import numpy as np
 import pyransac3d as pyrsc
 from src.viewer.viewer import Viewer
 from src.lib.types.gstype import GSplatData
+from src.lib.types.trunk import TrunkLocation
+from src.lib.types.tree import Trees
+from src.lib.thickness.thickness import DBHAnalyzer
+
+mid_gs = GSplatData.load_from_npz("tmp/mid_gs.npz")
+ground_gs = GSplatData.load_from_npz("tmp/ground_gs.npz")
+above_gs = GSplatData.load_from_npz("tmp/above_ground_gs.npz")
+trunk_location = TrunkLocation.from_gs(mid_gs)
+trees = Trees()
+
+print(f"trunk_location.trunk_locations: {trunk_location.trunk_locations[:5]}")
+for trunk_location in trunk_location.trunk_locations:
+    trees.add_tree(location=trunk_location, dbh=0.0)
+
+print(f"trees: {trees.trees[:5]}")
+dbh_analyzer = DBHAnalyzer(above_gs)
+trees = dbh_analyzer.run(trees)
+for i, tree in enumerate(trees.trees):
+    print(f"tree: {tree.id}, dbh: {tree.dbh}")
+    if i == 5:
+        break
+
+exit()
+
 
 points = GSplatData.load_from_npz("tmp/mid_gs.npz")
 

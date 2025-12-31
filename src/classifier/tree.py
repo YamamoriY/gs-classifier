@@ -13,20 +13,20 @@ if __name__ == "__main__":
     above_gs = GSplatData.load_from_npz("tmp/above_ground_gs.npz")
 
     # いったん書き出し用に保存
-    trunk_location_save = TrunkLocation.from_gs(mid_gs)
-    save_gs = above_gs.copy()
-    # ground_gs と結合
-    save_gs = ground_gs.concatenate(save_gs)
-    R = np.array([
-        [1, 0, 0],
-        [0, 0, 1],
-        [0, -1, 0],
-    ])
-    save_gs.coordinate_transform(R)
-    trunk_location_save.coordinate_transform(R)
-    save_ply_file(Path("out/gs.ply"), save_gs)
-    trunk_location_save.save_to_json("out/trunk_location.json")
-    exit()
+    # trunk_location_save = TrunkLocation.from_gs(mid_gs)
+    # save_gs = above_gs.copy()
+    # # ground_gs と結合
+    # save_gs = ground_gs.concatenate(save_gs)
+    # R = np.array([
+    #     [1, 0, 0],
+    #     [0, 0, 1],
+    #     [0, -1, 0],
+    # ])
+    # save_gs.coordinate_transform(R)
+    # trunk_location_save.coordinate_transform(R)
+    # save_ply_file(Path("out/gs.ply"), save_gs)
+    # trunk_location_save.save_to_json("out/trunk_location.json")
+    # exit()
     # ここまで保存用
 
     trunk_location = TrunkLocation.from_gs(mid_gs)
