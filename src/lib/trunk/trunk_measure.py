@@ -257,7 +257,6 @@ class DBHResult:
 
 def compute_dbh(
     full_gs: GSplatData,
-    ground_z: float,
     lower: float = 1.2,
     upper: float = 1.4,
 ) -> dict[int, DBHResult]:
@@ -272,10 +271,11 @@ def compute_dbh(
         mask = full_gs.labels == label
         points = full_gs.centers[mask]
 
-        # 地面基準で胸高スライス
+        # 各木のZ最小値を地面基準とする（HAG基準）
+        tree_ground_z = points[:, 2].min()
         slice_mask = (
-            (points[:, 2] > ground_z + lower) &
-            (points[:, 2] < ground_z + upper)
+            (points[:, 2] > tree_ground_z + lower) &
+            (points[:, 2] < tree_ground_z + upper)
         )
 
         slice_points = points[slice_mask]
@@ -304,7 +304,6 @@ def compute_dbh(
 def run_pipeline(
     full_gs: GSplatData,
     trunk_slice_gs: GSplatData,
-    ground_z: float,
 ):
 
     # 1. 幹抽出
@@ -331,6 +330,6 @@ def run_pipeline(
     heights = compute_tree_heights(full_gs)
 
     # 4. DBH
-    dbh_results = compute_dbh(full_gs, ground_z)
+    dbh_results = compute_dbh(full_gs)
 
     return full_gs, heights, dbh_results

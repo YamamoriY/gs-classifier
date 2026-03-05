@@ -27,12 +27,9 @@ def main():
     full_gs = GSplatData.load_from_npz("tmp/above_ground_gs_akan.npz")
     trunk_slice = GSplatData.load_from_npz("tmp/mid_gs_akan.npz")
 
-    ground_z = full_gs.centers[:, 2].min()
-
     full_gs, heights, dbh_results = run_pipeline(
         full_gs,
         trunk_slice,
-        ground_z
     )
 
     print("=== Tree Heights ===")
