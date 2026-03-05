@@ -243,14 +243,26 @@ def compute_tree_heights(full_gs: GSplatData) -> dict[int, float]:
 # ===============================
 # 胸高直径計算
 # ===============================
+from dataclasses import dataclass
+
+
+@dataclass
+class DBHResult:
+    """胸高直径の計算結果"""
+    dbh: float              # 胸高直径 [m]
+    center: np.ndarray      # (3,) RANSAC円の中心座標
+    radius: float           # 円の半径 [m]
+    slice_xy: np.ndarray    # (N, 2) スライス点群のXY座標
+
+
 def compute_dbh(
     full_gs: GSplatData,
     ground_z: float,
     lower: float = 1.2,
     upper: float = 1.4,
-) -> dict[int, float]:
+) -> dict[int, DBHResult]:
 
-    dbh_dict = {}
+    results = {}
     unique_labels = np.unique(full_gs.labels)
 
     for label in unique_labels:
@@ -274,12 +286,16 @@ def compute_dbh(
 
         # RANSAC円フィット
         circle = pyrsc.Circle()
-        center, _,radius,inliers = circle.fit(slice_points, thresh=0.02)
+        center, _, radius, inliers = circle.fit(slice_points, thresh=0.02)
 
-        dbh = radius * 2.0
-        dbh_dict[label] = dbh
+        results[label] = DBHResult(
+            dbh=radius * 2.0,
+            center=np.array(center),
+            radius=radius,
+            slice_xy=slice_points[:, :2],
+        )
 
-    return dbh_dict
+    return results
 
 
 # ===============================
@@ -315,6 +331,6 @@ def run_pipeline(
     heights = compute_tree_heights(full_gs)
 
     # 4. DBH
-    dbh = compute_dbh(full_gs, ground_z)
+    dbh_results = compute_dbh(full_gs, ground_z)
 
-    return full_gs, heights, dbh
+    return full_gs, heights, dbh_results

@@ -1,6 +1,7 @@
 from src.lib.types.gstype import GSplatData
 from src.lib.trunk.trunk_measure import run_pipeline
 import numpy as np
+import matplotlib.pyplot as plt
 from src.viewer.viewer import Viewer
 
 def colorize_by_label(gs: GSplatData):
@@ -28,7 +29,7 @@ def main():
 
     ground_z = full_gs.centers[:, 2].min()
 
-    full_gs, heights, dbh = run_pipeline(
+    full_gs, heights, dbh_results = run_pipeline(
         full_gs,
         trunk_slice,
         ground_z
@@ -39,8 +40,28 @@ def main():
         print(f"Tree {k}: {v:.2f} m")
 
     print("=== DBH ===")
-    for k, v in dbh.items():
-        print(f"Tree {k}: {v:.3f} m")
+    for k, v in dbh_results.items():
+        print(f"Tree {k}: {v.dbh:.3f} m")
+
+    # 円フィット結果をmatplotlibで確認
+    n = len(dbh_results)
+    cols = min(n, 4)
+    rows = (n + cols - 1) // cols
+    fig, axes = plt.subplots(rows, cols, figsize=(4 * cols, 4 * rows), squeeze=False)
+    theta = np.linspace(0, 2 * np.pi, 128)
+    for ax, (label, r) in zip(axes.flat, dbh_results.items()):
+        ax.scatter(r.slice_xy[:, 0], r.slice_xy[:, 1], s=1, alpha=0.5)
+        ax.plot(r.center[0] + r.radius * np.cos(theta),
+                r.center[1] + r.radius * np.sin(theta), 'r-', linewidth=2)
+        ax.plot(r.center[0], r.center[1], 'r+', markersize=10)
+        ax.set_title(f"Tree {label}  DBH={r.dbh:.3f}m")
+        ax.set_aspect('equal')
+    for ax in axes.flat[n:]:
+        ax.set_visible(False)
+    plt.tight_layout()
+    plt.savefig("tmp/dbh_circle_fit.png", dpi=150)
+    print("saved: tmp/dbh_circle_fit.png")
+    plt.close()
 
     print("unique labels:", np.unique(full_gs.labels))
     print("label count:", len(np.unique(full_gs.labels)))
