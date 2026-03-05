@@ -26,7 +26,7 @@ if __name__ == "__main__":
     trunk_location_save.coordinate_transform(R)
     save_ply_file(Path("out/gs.ply"), save_gs)
     trunk_location_save.save_to_json("out/trunk_location.json")
-    exit()
+    #exit()
     # ここまで保存用
 
     trunk_location = TrunkLocation.from_gs(mid_gs)
