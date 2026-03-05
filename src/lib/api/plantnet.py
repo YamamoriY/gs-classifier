@@ -8,6 +8,8 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import cv2
+import japanize_matplotlib
+import matplotlib.pyplot as plt
 import numpy as np
 import requests
 from dotenv import load_dotenv
@@ -210,14 +212,49 @@ if __name__ == "__main__":
 
     if result.success and result.data:
         print("=== 推論結果 (Top 10) ===")
+        results_texts = ["=== 推論結果 (Top 10) ==="]  # 画像表示用テキスト
+
         for i, match in enumerate(result.data.get("results", [])[:10], 1):
             species = match["species"]["scientificNameWithoutAuthor"]
             common_names = match["species"].get("commonNames")
             common = common_names[0] if common_names else "N/A"
             score = match["score"] * 100
-            print(f"{i}. {species} ({common}) - 確信度: {score:.1f}%")
+
+            # コマンドライン用とMatplotlib用両方のテキストを作成
+            line = f"{i}. {species} ({common}) - 確信度: {score:.1f}%"
+            print(line)
+            results_texts.append(line)
+
         print(
             f"\n[状態確認] 残りAPI呼び出し回数: {client.last_remaining}/{client.limit}"
         )
+
+        # --- Matplotlib による画像と結果の並列表示 ---
+        # OpenCVのBGR形式をRGB形式に変換（Matplotlibで正しい色で表示するため）
+        img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
+
+        # 左側: 画像の表示
+        ax1.imshow(img_rgb)
+        ax1.axis("off")
+        ax1.set_title("Input Image")
+
+        # 右側: テキストの表示
+        ax2.axis("off")
+        display_text = "\n".join(results_texts)
+        # y=0.95付近を起点に上から下へ描画
+        ax2.text(
+            0.0,
+            0.95,
+            display_text,
+            fontsize=12,
+            va="top",
+            ha="left",
+            transform=ax2.transAxes,
+        )
+
+        plt.tight_layout()
+        plt.show()
     else:
         print(f"判別に失敗しました: {result.error_message}")
