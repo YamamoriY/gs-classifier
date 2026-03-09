@@ -24,8 +24,8 @@ def colorize_by_label(gs: GSplatData):
 
 def main():
 
-    full_gs = GSplatData.load_from_npz("tmp/above_ground_gs_akan.npz")
-    trunk_slice = GSplatData.load_from_npz("tmp/mid_gs_akan.npz")
+    full_gs = GSplatData.load_from_npz("tmp/above_ground_gs.npz")
+    trunk_slice = GSplatData.load_from_npz("tmp/mid_gs.npz")
 
     full_gs, heights, dbh_results = run_pipeline(
         full_gs,
@@ -45,11 +45,11 @@ def main():
     cols = min(n, 4)
     rows = (n + cols - 1) // cols
     fig, axes = plt.subplots(rows, cols, figsize=(4 * cols, 4 * rows), squeeze=False)
-    theta = np.linspace(0, 2 * np.pi, 128)
+    t = np.linspace(0, 2 * np.pi, 128)
     for ax, (label, r) in zip(axes.flat, dbh_results.items()):
         ax.scatter(r.slice_xy[:, 0], r.slice_xy[:, 1], s=1, alpha=0.5)
-        ax.plot(r.center[0] + r.radius * np.cos(theta),
-                r.center[1] + r.radius * np.sin(theta), 'r-', linewidth=2)
+        ax.plot(r.center[0] + r.radius * np.cos(t),
+                r.center[1] + r.radius * np.sin(t), 'r-', linewidth=2)
         ax.plot(r.center[0], r.center[1], 'r+', markersize=10)
         ax.set_title(f"Tree {label}  DBH={r.dbh:.3f}m")
         ax.set_aspect('equal')
