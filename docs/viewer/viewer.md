@@ -1,18 +1,20 @@
 # ビューアー
 
+`src/gs_classifier/viewer/`
+
 ## 概要
 
-3D Gaussian Splatting データを可視化するツールです。viser を使用しています。 
+3D Gaussian Splatting データを可視化するツールです。viser を使用しています。
 
-ガウシアン、点群、ラベルごとの色付きガウシアン、の表示を切り替えれるのがいいところですが、viser の仕様により内部実装が複雑になってしまっています。 \
-（一度プロットしたガウシアンを後から変更できないので、最初に通常ガウシアンと、色付きガウシアンを同時に追加して切り替えて表示している）
+ガウシアン、点群、ラベルごとの色付きガウシアンの表示を切り替えられます。
+viser の仕様により、一度プロットしたガウシアンを後から変更できないため、最初に通常ガウシアンと色付きガウシアンを同時に追加して切り替えて表示しています。
 
 ## 基本的な使い方
 
 ### 初期化
 
 ```python
-from src.viewer.viewer import Viewer
+from gs_classifier.viewer import Viewer
 
 viewer = Viewer()
 ```
@@ -29,12 +31,15 @@ viewer.add_gsplat(
 )
 ```
 
-**パラメータ**:
-- `gsplat_data`: 表示する `GSplatData`
-- `name`: 表示名（必ず重複なし！！！）
-- `folder_name`: フォルダ名（同じフォルダ名のものは同じフォルダに表示）
-- `visible`: 初期表示状態
-- `image_out`: 画像出力対象にするかどうか
+**パラメータ:**
+
+| パラメータ | 型 | 説明 |
+|---|---|---|
+| `gsplat_data` | `GSplatData` | 表示するデータ |
+| `name` | `str` | 表示名（重複不可） |
+| `folder_name` | `str` | フォルダ名（同名はグループ化される） |
+| `visible` | `bool` | 初期表示状態 |
+| `image_out` | `bool` | 画像出力対象にするか |
 
 ### 実行
 
@@ -55,16 +60,25 @@ viewer.run()
 
 ### 表示モード
 
-ビューのUIで切り替えができます。
+ビューの UI で切り替えができます。
 
-- **Normal**: 通常表示
-- **Points View**: ポイント表示
-- **Class View**: クラス表示
+- **Normal**: 通常のガウシアン表示
+- **Points View**: ポイントクラウド表示
+- **Class View**: ラベルごとに色分けされた表示
 
 ### 画像出力
 
 `image_out=True` に設定したデータは、「Print Images」ボタンで自動的に画像を出力できます。
 
-- 4方向（前後左右）から画像を撮影
+- 4 方向（前後左右）から画像を撮影
 - `tmp/images/{name}/` に保存
 
+## 内部構造
+
+| ファイル | クラス | 説明 |
+|---|---|---|
+| `viewer.py` | `Viewer` | メインビューアー |
+| `types.py` | `GSplatHandle` | 表示モード管理 (normal/class/points) |
+| `types.py` | `GSplatFolder` | フォルダ管理 (show/hide/step) |
+| `types.py` | `GSplatMode` | 表示モード Enum |
+| `colors.py` | `ColorCycle` | シングルトンカラーパレット (tab20) |
