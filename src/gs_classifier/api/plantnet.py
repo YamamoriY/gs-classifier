@@ -1,14 +1,15 @@
+"""PlantNet API による植物種同定。"""
+
 import io
 import logging
 import os
 import re
-import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import cv2
-import japanize_matplotlib
+import japanize_matplotlib  # noqa: F401
 import matplotlib.pyplot as plt
 import numpy as np
 import requests
@@ -47,8 +48,18 @@ class PlantNetClient:
     MAX_IMAGES = 5
 
     def __init__(
-        self, api_key: Optional[str] = None, project: str = "japan", lang: str = "ja"
+        self,
+        api_key: Optional[str] = None,
+        project: str = "japan",
+        lang: str = "ja",
     ):
+        """クライアントを初期化する。
+
+        Args:
+            api_key: PlantNet API キー。省略時は環境変数から取得。
+            project: PlantNet プロジェクト名。
+            lang: レスポンスの言語コード。
+        """
         self.api_key = api_key or os.getenv("PLANTNET_API_KEY")
         if not self.api_key:
             raise ValueError(
@@ -87,7 +98,9 @@ class PlantNetClient:
         image_content.seek(0)
         return ("images", (f"image_{index}.jpg", image_content, "image/jpeg"))
 
-    def _build_multipart(self, images: List[np.ndarray], organs: List[str]) -> tuple:
+    def _build_multipart(
+        self, images: List[np.ndarray], organs: List[str]
+    ) -> tuple:
         """画像リストからmultipartのfiles/dataを構築する"""
         files = []
         data = []
@@ -147,7 +160,9 @@ class PlantNetClient:
         params = {"api-key": self.api_key, "lang": self.lang}
 
         try:
-            res = requests.post(url, params=params, files=files, data=data, timeout=30)
+            res = requests.post(
+                url, params=params, files=files, data=data, timeout=30
+            )
         except requests.exceptions.ConnectionError:
             logger.error("ネットワーク接続に失敗しました。")
             return PlantNetResult(
@@ -192,69 +207,92 @@ class PlantNetClient:
         )
 
 
-if __name__ == "__main__":
-    test_image_path = (
-        Path(sys.argv[1]) if len(sys.argv) > 1 else Path("./tmp/image.png")
-    )
+def _format_results(data: Dict[str, Any], top_n: int = 10) -> list[str]:
+    """API レスポンスから上位結果を整形したテキスト行のリストを返す。
 
-    if not test_image_path.exists():
-        print(f"画像が見つかりません: {test_image_path}")
+    Args:
+        data: PlantNet API のレスポンスデータ。
+        top_n: 表示する上位件数。
+
+    Returns:
+        整形済みテキスト行のリスト。
+    """
+    lines = [f"=== 推論結果 (Top {top_n}) ==="]
+    for i, match in enumerate(data.get("results", [])[:top_n], 1):
+        species = match["species"]["scientificNameWithoutAuthor"]
+        common_names = match["species"].get("commonNames")
+        common = common_names[0] if common_names else "N/A"
+        score = match["score"] * 100
+        lines.append(f"{i}. {species} ({common}) - 確信度: {score:.1f}%")
+    return lines
+
+
+def _show_result_figure(img: np.ndarray, results_texts: list[str]) -> None:
+    """画像と判定結果を Matplotlib で並列表示する。
+
+    Args:
+        img: BGR 形式の入力画像。
+        results_texts: 表示するテキスト行のリスト。
+    """
+    img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
+
+    ax1.imshow(img_rgb)
+    ax1.axis("off")
+    ax1.set_title("Input Image")
+
+    ax2.axis("off")
+    ax2.text(
+        0.0,
+        0.95,
+        "\n".join(results_texts),
+        fontsize=12,
+        va="top",
+        ha="left",
+        transform=ax2.transAxes,
+    )
+    plt.tight_layout()
+    plt.show()
+
+
+def main(image_path: str = "tmp/image.png", no_display: bool = False) -> None:
+    """画像を PlantNet API で判定し結果を表示する。
+
+    Args:
+        image_path: 入力画像のパス。
+        no_display: True の場合、Matplotlib 表示をスキップ。
+    """
+    path = Path(image_path)
+    if not path.exists():
+        print(f"画像が見つかりません: {path}")
         raise SystemExit(1)
 
-    img = cv2.imread(str(test_image_path))
+    img = cv2.imread(str(path))
     if img is None:
-        print("画像を読み込めませんでした。ファイルが壊れている可能性があります。")
+        print(
+            "画像を読み込めませんでした。ファイルが壊れている可能性があります。"
+        )
         raise SystemExit(1)
 
     client = PlantNetClient()
     print("PlantNet API に問い合わせ中...\n")
     result = client.identify([img])
 
-    if result.success and result.data:
-        print("=== 推論結果 (Top 10) ===")
-        results_texts = ["=== 推論結果 (Top 10) ==="]  # 画像表示用テキスト
-
-        for i, match in enumerate(result.data.get("results", [])[:10], 1):
-            species = match["species"]["scientificNameWithoutAuthor"]
-            common_names = match["species"].get("commonNames")
-            common = common_names[0] if common_names else "N/A"
-            score = match["score"] * 100
-
-            # コマンドライン用とMatplotlib用両方のテキストを作成
-            line = f"{i}. {species} ({common}) - 確信度: {score:.1f}%"
-            print(line)
-            results_texts.append(line)
-
-        print(
-            f"\n[状態確認] 残りAPI呼び出し回数: {client.last_remaining}/{client.limit}"
-        )
-
-        # --- Matplotlib による画像と結果の並列表示 ---
-        # OpenCVのBGR形式をRGB形式に変換（Matplotlibで正しい色で表示するため）
-        img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
-
-        # 左側: 画像の表示
-        ax1.imshow(img_rgb)
-        ax1.axis("off")
-        ax1.set_title("Input Image")
-
-        # 右側: テキストの表示
-        ax2.axis("off")
-        display_text = "\n".join(results_texts)
-        # y=0.95付近を起点に上から下へ描画
-        ax2.text(
-            0.0,
-            0.95,
-            display_text,
-            fontsize=12,
-            va="top",
-            ha="left",
-            transform=ax2.transAxes,
-        )
-
-        plt.tight_layout()
-        plt.show()
-    else:
+    if not result.success or not result.data:
         print(f"判別に失敗しました: {result.error_message}")
+        raise SystemExit(1)
+
+    lines = _format_results(result.data)
+    for line in lines:
+        print(line)
+    print(
+        f"\n[状態確認] 残りAPI呼び出し回数: "
+        f"{client.last_remaining}/{client.limit}"
+    )
+
+    if not no_display:
+        _show_result_figure(img, lines)
+
+
+if __name__ == "__main__":
+    main()
