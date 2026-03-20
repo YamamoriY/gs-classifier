@@ -60,19 +60,19 @@ gs-classifier/
 # （デフォルトだと takino.ply かな）
 
 # 2. 地面抽出
-python -m src.classifier.ground
+uv run -m src.classifier.ground
 
 # 3. 幹抽出
-python -m src.classifier.trunk
+uv run -m src.classifier.trunk
 
 # 4. 単木抽出
-python -m src.classifier.tree
+uv run -m src.classifier.tree
 ```
 
 ### ビューアーを実行する
 ```bash
 # ビューアーを単独で実行する
-python -m src.viewer.viewer
+uv run -m src.viewer.viewer
 ```
 
 
@@ -87,8 +87,6 @@ python -m src.viewer.viewer
 - scikit-learn
 - matplotlib
 - plyfile
-
-pdal やめたので pip で全部入れられます。諸事情で requirements.txt が今ないです。今度作ります
 
 ## 詳細
 各クラスの詳細は docs/ を確認してください。

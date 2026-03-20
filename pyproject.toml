@@ -16,7 +16,8 @@ dependencies = [
     "python-dotenv>=1.1.0",
     "requests>=2.32.0",
     "scikit-learn>=1.8.0",
-    "viser>=1.0.24",
+    "viser==1.0.15",
+    "tyro>=1.0.10",
 ]
 
 [project.scripts]
