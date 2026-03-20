@@ -1,3 +1,0 @@
-ground.py : 全体から地面を抽出
-trunk.py : 幹を雑に抽出
-tree.py : 幹の情報から木を抽出
