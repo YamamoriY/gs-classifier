@@ -14,7 +14,7 @@ from src.lib.ground.ground import GroundDetector
 if __name__ == "__main__":
     # === ロード ===
     print("load ply file")
-    ply_path = Path(__file__).parent / "../../data/akan.ply"
+    ply_path = Path(__file__).parent / "../../data/keiteki_2nd.ply"
     splat_data = load_ply_file(ply_path, center=True)
 
     # 座標変換（x軸周り-90°）

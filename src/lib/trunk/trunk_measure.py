@@ -11,9 +11,7 @@ from src.lib.types.gstype import GSplatData
 from src.lib.trunk.trunk import TrunkClassifier
 
 
-# ===============================
-# 幹ID伝播（同時多源BFS）
-# ===============================
+#ボロノイ的な伝播で精度が出ない。
 def propagate_trunk_ids_bfs(
     full_gs: GSplatData,
     trunk_gs: GSplatData,
@@ -91,34 +89,38 @@ def propagate_trunk_ids_minimax(
     seed_radius: float = 0.3,
     min_hag: float = 0.2,
     xy_scale: float = 3.0,
+    cross_penalty: float = 3.0,
+    exp_scale: float = 10.0,
 ) -> GSplatData:
     """
-    ミニマックスDijkstra（ボトルネックパス）による幹ID伝播。
+    ミニマックスDijkstra + 局所PCA主軸アライメントによる幹ID伝播。
 
-    各点は「シードから到達するパス上の最大エッジが最小」となるシードのラベルを得る。
-    - 連続した枝: 全エッジが小さい（点間隔程度）→ ミニマックスコスト小 ✓
-    - 不連続な跳躍: どこかに大きなエッジが必要 → ミニマックスコスト大 ✗
+    各点は「シードから到達するパス上の最大エッジコストが最小」となるシードのラベルを得る。
 
-    BFSと違いホップ数ではなく「パスの連続性」で競合するため、
-    ある木の枝に連続してつながっている点群はその木のラベルを保持しやすい。
+    エッジコスト = exp(exp_scale * d) + cross_penalty * linearity * (1 - alignment)
+    - exp(exp_scale * d): 距離の非線形スケーリング。構造間ギャップを強調
+    - cross_penalty: エッジ方向がnbの主軸と直交するほどペナルティ
 
     Parameters
     ----------
-    connect_radius : スケール済み座標空間での最大エッジ長 [m]（BFSより大きくてよい）
+    connect_radius : スケール済み座標空間での最大エッジ長 [m]
     k_neighbors    : 各点が参照する近傍数
     seed_radius    : 幹シードの初期3D割り当て半径 [m]（実空間）
     min_hag        : この高さ[m]未満の点には伝播しない
     xy_scale       : XY方向のペナルティ係数（縦方向バイアス）
+    cross_penalty  : 主軸と直交する方向への伝播ペナルティ重み
+    exp_scale      : 距離の指数スケーリング係数
     """
     if len(trunk_gs.centers) == 0:
         raise ValueError("trunk_gs is empty")
 
     N = len(full_gs.centers)
+    centers = full_gs.centers  # (N, 3) 実空間座標
     full_gs.labels[:] = -1
 
     # --- シード初期化: 幹点の3D近傍でラベルを付与 ---
     seed_tree = cKDTree(trunk_gs.centers)
-    dist, ind = seed_tree.query(full_gs.centers, workers=-1)
+    dist, ind = seed_tree.query(centers, workers=-1)
     seed_mask = dist < seed_radius
     full_gs.labels[seed_mask] = trunk_gs.labels[ind[seed_mask]]
 
@@ -126,7 +128,7 @@ def propagate_trunk_ids_minimax(
     valid = full_gs.additional_data["hags"] >= min_hag
 
     # --- XYスケールした座標空間でk-NNグラフ構築 ---
-    scaled_centers = full_gs.centers.copy()
+    scaled_centers = centers.copy()
     scaled_centers[:, 0] *= xy_scale
     scaled_centers[:, 1] *= xy_scale
 
@@ -135,9 +137,27 @@ def propagate_trunk_ids_minimax(
     neighbor_inds = inds[:, 1:]
     neighbor_dists = dists[:, 1:]
 
+    # --- 局所PCA主軸（実空間のk-NN近傍から計算） ---
+    nb_pts = centers[neighbor_inds]  # (N, k, 3)
+    means = nb_pts.mean(axis=1, keepdims=True)
+    centered = nb_pts - means
+    k = neighbor_inds.shape[1]
+    covs = np.einsum('nki,nkj->nij', centered, centered) / max(k - 1, 1)
+    eigvals, eigvecs = np.linalg.eigh(covs)
+    principal_axes = eigvecs[:, :, -1]  # (N, 3) 最大固有値の固有ベクトル
+    linearity = np.where(
+        eigvals[:, -1] > 1e-8,
+        (eigvals[:, -1] - eigvals[:, -2]) / eigvals[:, -1],
+        0.0,
+    )  # 0=球状(針葉樹葉), 1=棒状(枝)
+
+    # --- エッジコストの距離項を事前計算 ---
+    exp_dists = np.exp(exp_scale * neighbor_dists)  # (N, k)
+
     # --- ミニマックスDijkstra ---
-    # cost[i] = シードから i に至るパス上の最大エッジ長の最小値
     cost = np.full(N, np.inf)
+    parent = np.full(N, -1, dtype=int)
+    labels = full_gs.labels  # 参照を保持
 
     heap = []  # (cost, idx)
     for i in np.where(seed_mask & valid)[0]:
@@ -147,24 +167,140 @@ def propagate_trunk_ids_minimax(
     while heap:
         c, idx = heapq.heappop(heap)
         if c > cost[idx]:
-            continue  # 古いエントリ
-        lbl = full_gs.labels[idx]
-        for nb, d in zip(neighbor_inds[idx], neighbor_dists[idx]):
+            continue
+        lbl = labels[idx]
+        idx_nbs = neighbor_inds[idx]
+        idx_dists = neighbor_dists[idx]
+        idx_exp = exp_dists[idx]
+        for j in range(k):
+            d = idx_dists[j]
             if d > connect_radius:
-                break  # 距離昇順なので以降も範囲外
+                break
+            nb = idx_nbs[j]
             if not valid[nb]:
                 continue
-            # ミニマックス: このパスでの最大エッジ = max(これまでの最大, 今のエッジ)
-            new_cost = max(c, d)
+
+            # 主軸アライメント: エッジ方向とnbの主軸の一致度
+            edge_vec = centers[nb] - centers[idx]
+            edge_len = np.linalg.norm(edge_vec)
+            if edge_len > 1e-8:
+                alignment = abs(np.dot(principal_axes[nb], edge_vec / edge_len))
+            else:
+                alignment = 1.0
+
+            edge_cost = idx_exp[j] + cross_penalty * linearity[nb] * (1.0 - alignment)
+            new_cost = max(c, edge_cost)
             if new_cost < cost[nb]:
                 cost[nb] = new_cost
-                full_gs.labels[nb] = lbl
+                labels[nb] = lbl
+                parent[nb] = idx
                 heapq.heappush(heap, (new_cost, int(nb)))
 
-    return full_gs
+    return full_gs, cost, parent, principal_axes, eigvals
 
 
-#ボトムアップだと，広範囲に広がる枝に追従できないから，完璧な樹形を得られないのが問題
+#枝が途中で別の木に分類されちゃう境界を見つける。これ自体はうまくいったけどそっから活かせなかった。
+def fix_absorbed_points(
+    full_gs: GSplatData,
+    parent: np.ndarray,
+    principal_axes: np.ndarray,
+    eigvals: np.ndarray,
+    k_neighbors: int = 20,
+    linearity_threshold: float = 0.5,
+) -> np.ndarray:
+    """
+    枝に沿ってラベルが切り替わる点を検出する。
+
+    各点のPCA主軸の正方向・負方向にある近傍を調べ、
+    両側で異なるラベルを持つ場合、その点は枝上のラベル切り替え点。
+    linearity が高い（棒状=枝）点のみ対象にすることで針葉樹の葉を除外。
+
+    Parameters
+    ----------
+    principal_axes      : 各点の局所PCA主軸 (N, 3)
+    eigvals             : 各点のPCA固有値 (N, 3)、昇順
+    k_neighbors         : 近傍探索数
+    linearity_threshold : この値以上のlinearityを持つ点のみ対象
+    """
+    N = len(full_gs.centers)
+    centers = full_gs.centers
+    labels = full_gs.labels.copy()
+
+    # linearity: 棒状かどうか
+    linearity = np.where(
+        eigvals[:, -1] > 1e-8,
+        (eigvals[:, -1] - eigvals[:, -2]) / eigvals[:, -1],
+        0.0,
+    )
+
+    # k-NN
+    tree = cKDTree(centers)
+    _, nb_inds = tree.query(centers, k=k_neighbors + 1, workers=-1)
+    nb_inds = nb_inds[:, 1:]
+
+    # 親方向を事前計算
+    has_parent = (parent >= 0) & (parent != np.arange(N))
+    parent_dir = np.zeros((N, 3))
+    parent_dir[has_parent] = centers[parent[has_parent]] - centers[has_parent]
+    norms = np.linalg.norm(parent_dir, axis=1, keepdims=True)
+    parent_dir /= np.maximum(norms, 1e-8)
+
+    # 各点について、主軸の正方向・負方向の近傍ラベルを集計し、
+    # 境界点では両側のparent方向の一貫性で正しい側を判定
+    n_suspicious = 0
+    n_changed = 0
+    for i in range(N):
+        if labels[i] == -1 or linearity[i] < linearity_threshold:
+            continue
+        axis = principal_axes[i]
+        pos_nbs = []
+        neg_nbs = []
+        for nb in nb_inds[i]:
+            if labels[nb] == -1:
+                continue
+            diff = centers[nb] - centers[i]
+            dot = np.dot(axis, diff)
+            if dot > 0:
+                pos_nbs.append(nb)
+            else:
+                neg_nbs.append(nb)
+        if not pos_nbs or not neg_nbs:
+            continue
+        pos_labels = [labels[nb] for nb in pos_nbs]
+        neg_labels = [labels[nb] for nb in neg_nbs]
+        pos_majority = np.bincount(pos_labels).argmax()
+        neg_majority = np.bincount(neg_labels).argmax()
+        if pos_majority == neg_majority:
+            continue
+
+        n_suspicious += 1
+
+        # 両側のparent方向と枝方向（主軸）の一貫性を比較
+        # 正しい側: parent方向が枝方向に沿ってる（alignmentが高い）
+        # 吸われた側: parent方向が枝から逸れて幹に向かう（alignmentが低い）
+        pos_align = np.mean([abs(np.dot(principal_axes[nb], parent_dir[nb]))
+                            for nb in pos_nbs if has_parent[nb]] or [0.0])
+        neg_align = np.mean([abs(np.dot(principal_axes[nb], parent_dir[nb]))
+                            for nb in neg_nbs if has_parent[nb]] or [0.0])
+
+        # alignment が高い側のラベルが正しい
+        if pos_align >= neg_align:
+            correct_label = pos_majority
+        else:
+            correct_label = neg_majority
+
+        if labels[i] != correct_label:
+            labels[i] = correct_label
+            n_changed += 1
+
+    print(f"\n=== 枝上ラベル切り替え検出 ===")
+    print(f"  境界点: {n_suspicious} ({n_suspicious/N*100:.1f}%)")
+    print(f"  ラベル変更: {n_changed} ({n_changed/N*100:.1f}%)")
+
+    return labels
+
+
+#ボトムアップだと，水平方向に広範囲に広がる枝に追従できないから，完璧な樹形を得られないのが問題．不採用
 def propagate_trunk_ids_bottom_up(
     full_gs: GSplatData,
     trunk_gs: GSplatData,
@@ -372,6 +508,167 @@ def _remove_small_components(
 
 
 # ===============================
+# Graph Cut によるラベル境界最適化
+# ===============================
+def refine_labels_graphcut(
+    full_gs: GSplatData,
+    cost: np.ndarray,
+    neighbor_inds: np.ndarray,
+    neighbor_dists: np.ndarray,
+    smoothness_weight: float = 1.0,
+) -> GSplatData:
+    """
+    ミニマックスの結果をGraph Cut (alpha-expansion) で最適化する。
+
+    隣接する2ラベル間でバイナリGraph Cutを反復し、
+    グローバルに最適なラベル境界を求める。
+
+    データ項: ミニマックスコスト（低い=現ラベルへの確信が高い）
+    平滑化項: 隣接点が異なるラベルを持つペナルティ（エッジ距離の逆数で重み付け）
+    """
+    import maxflow
+
+    labels = full_gs.labels.copy()
+    unique_labels = np.unique(labels)
+    unique_labels = unique_labels[unique_labels != -1]
+
+    if len(unique_labels) < 2:
+        return full_gs
+
+    # alpha-expansion: 各ラベルについて順番にバイナリ最適化を繰り返す
+    changed = True
+    iteration = 0
+    max_iterations = 5
+
+    while changed and iteration < max_iterations:
+        changed = False
+        iteration += 1
+
+        for alpha in unique_labels:
+            # alpha以外のラベルを持つ点のうち、alphaの近傍にある点が対象
+            # 効率のため、alphaとの境界付近の点だけ処理する
+            alpha_mask = labels == alpha
+            if not alpha_mask.any():
+                continue
+
+            # alphaの近傍にある他ラベルの点を特定
+            boundary_points = set()
+            alpha_indices = np.where(alpha_mask)[0]
+            for idx in alpha_indices:
+                for nb in neighbor_inds[idx]:
+                    if labels[nb] != alpha and labels[nb] != -1:
+                        boundary_points.add(int(nb))
+            # alpha自身の境界付近も含める
+            for idx in list(boundary_points):
+                for nb in neighbor_inds[idx]:
+                    if labels[nb] != -1:
+                        boundary_points.add(int(nb))
+                        if labels[nb] == alpha:
+                            # alphaの境界付近の点も含める
+                            for nb2 in neighbor_inds[nb]:
+                                if labels[nb2] != -1:
+                                    boundary_points.add(int(nb2))
+
+            # alpha + 境界付近の点集合
+            candidate_indices = np.array(sorted(
+                set(alpha_indices.tolist()) | boundary_points
+            ))
+
+            if len(candidate_indices) < 2:
+                continue
+
+            # ローカルインデックスへのマッピング
+            n_local = len(candidate_indices)
+            global_to_local = {g: l for l, g in enumerate(candidate_indices)}
+
+            # Graph構築
+            g = maxflow.Graph[float](n_local, n_local * 10)
+            nodes = g.add_nodes(n_local)
+
+            # データ項: 正規化ミニマックスコスト + 近傍ラベル一致率
+            # cost低い → 確信高い → 変更しにくい
+            # 近傍に同じラベルが多い → 変更しにくい
+            candidate_costs = cost[candidate_indices]
+            finite_mask = np.isfinite(candidate_costs)
+            if finite_mask.any():
+                c_min = candidate_costs[finite_mask].min()
+                c_max = candidate_costs[finite_mask].max()
+                cost_norm = np.where(
+                    finite_mask,
+                    (candidate_costs - c_min) / (c_max - c_min + 1e-8),
+                    1.0,
+                )
+            else:
+                cost_norm = np.ones(n_local)
+
+            data_weight = 5.0
+            for l_idx in range(n_local):
+                g_idx = candidate_indices[l_idx]
+                current_label = labels[g_idx]
+
+                # 確信度: cost低い=確信高い(1に近い), cost高い=確信低い(0に近い)
+                confidence = 1.0 - cost_norm[l_idx]
+
+                if current_label == alpha:
+                    # 現在alpha: 維持コスト=0, 変更コスト=確信度に比例
+                    g.add_tedge(nodes[l_idx], data_weight * confidence, 0.0)
+                else:
+                    # 現在alpha以外: 維持コスト=確信度に比例, 変更コスト=0
+                    g.add_tedge(nodes[l_idx], 0.0, data_weight * confidence)
+
+            # 平滑化項: 隣接点が異なるラベルになるペナルティ
+            added_edges = set()
+            for l_idx in range(n_local):
+                g_idx = candidate_indices[l_idx]
+                for nb, d in zip(neighbor_inds[g_idx], neighbor_dists[g_idx]):
+                    nb = int(nb)
+                    if nb not in global_to_local:
+                        continue
+                    l_nb = global_to_local[nb]
+                    edge_key = (min(l_idx, l_nb), max(l_idx, l_nb))
+                    if edge_key in added_edges:
+                        continue
+                    added_edges.add(edge_key)
+
+                    # 隣接点が異なるラベルを持つペナルティ（定数重み）
+                    w = smoothness_weight
+                    g.add_edge(nodes[l_idx], nodes[l_nb], w, w)
+
+            # Min-cut実行
+            g.maxflow()
+
+            # 結果を反映: source側 = alpha以外, sink側 = alpha
+            n_changed = 0
+            for l_idx in range(n_local):
+                g_idx = candidate_indices[l_idx]
+                if g.get_segment(nodes[l_idx]) == 1:  # sink = alpha
+                    if labels[g_idx] != alpha:
+                        labels[g_idx] = alpha
+                        n_changed += 1
+                else:  # source = not alpha
+                    if labels[g_idx] == alpha:
+                        # alphaから別ラベルに変更 — 最近傍の非alphaラベルを付与
+                        for nb in neighbor_inds[g_idx]:
+                            if labels[nb] != alpha and labels[nb] != -1:
+                                labels[g_idx] = labels[nb]
+                                n_changed += 1
+                                break
+
+            if n_changed > 0:
+                changed = True
+
+        print(f"  Graph Cut iteration {iteration}: changed={changed}")
+
+    total_changed = (full_gs.labels != labels).sum()
+    print(f"\n=== Graph Cut ラベル最適化 ===")
+    print(f"  反復回数: {iteration}")
+    print(f"  総変更点数: {total_changed} ({total_changed/len(labels)*100:.1f}%)")
+
+    full_gs.labels = labels
+    return full_gs
+
+
+# ===============================
 # 木の高さ計算
 # ===============================
 def compute_tree_heights(full_gs: GSplatData) -> dict[int, float]:
@@ -506,8 +803,8 @@ def run_pipeline(
         additional_data={k: v[trunk_mask] for k, v in trunk_gs.additional_data.items()},
     )
 
-    # 2. 幹ID伝播（同時多源BFS）
-    full_gs = propagate_trunk_ids_minimax(full_gs, trunk_only, xy_scale=3.5)
+    # 2. 幹ID伝播（ミニマックスDijkstra + PCAアライメント）
+    full_gs, *_ = propagate_trunk_ids_minimax(full_gs, trunk_only, xy_scale=3.5)
 
     # 2.7 孤立小クラスタ除去
     full_gs = _remove_small_components(full_gs)
